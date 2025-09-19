@@ -1,0 +1,68 @@
+name: ewise
+description: A Flutter application for e-waste management
+
+# Add this environment section at the top
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  shimmer: ^2.0.0
+  cupertino_icons: ^1.0.5
+  shared_preferences: ^2.0.15
+  uuid: ^4.5.1
+  url_launcher: ^6.1.7
+  path: ^1.8.3
+  http: ^0.13.5
+  path_provider: ^2.0.14
+  image_picker: ^0.8.7+4
+  video_player: ^2.5.0
+  camera: ^0.10.0
+  flutter_dotenv: ^5.0.2
+  permission_handler: ^12.0.0
+  flutter_signin_button: ^2.0.0
+
+  # --- Map & location related packages ---
+  flutter_map: ^4.0.0
+  latlong2: ^0.8.2
+  geolocator: ^9.0.2
+
+dev_dependencies:
+  flutter_launcher_icons: "^0.10.0"
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/videos/intro.mp4
+    - assets/videos/intro1.mp4
+    - assets/videos/intro2.mp4
+    - assets/images/1.png
+    - assets/images/2.png
+    - assets/images/4.png
+    - assets/images/3.png
+    - assets/images/5.png
+    - assets/images/intro.png
+    - assets/images/intro1.png
+    - assets/images/google_logo.webp
+    - .env
+    - assets/icons/collection.png
+    - assets/icons/dropzone.png
+    - assets/icons/pickup.png
+    - assets/icons/ewaste.png
+    - assets/icons/shop.png
+    - assets/icons/icon1.png
+
+flutter_icons:
+  android: true
+  image_path: "assets/icons/icon.png"
+  adaptive_icon_background: "#ffffff" # or path to a background image
+  # adaptive_icon_foreground: "assets/icon/foreground.png" # optional
+
+# Consider removing this override unless absolutely necessary
+# dependency_overrides:
+#   permission_handler_android: ^13.0.1
