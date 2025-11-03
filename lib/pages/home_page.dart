@@ -277,6 +277,7 @@ class _HomePageState extends State<HomePage> {
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: CreatePostSheet(
+            user: widget.user,
             onCreate: (post) {
               setState(() {
                 _posts.insert(0, post);
@@ -1286,6 +1287,45 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.add_box_outlined, color: textPrimary),
             tooltip: 'Create post',
           ),
+          const SizedBox(width: 8),
+          // User Profile Avatar
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProfilePage(
+                    devices: _devices,
+                    onDeviceUpdated: _updateDevice,
+                    posts: _posts,
+                    user: widget.user,
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: widget.user?.photoURL != null
+                  ? CircleAvatar(
+                      radius: 18,
+                      backgroundImage: NetworkImage(widget.user!.photoURL!),
+                      backgroundColor: cs.primary,
+                    )
+                  : CircleAvatar(
+                      radius: 18,
+                      backgroundColor: cs.primary,
+                      child: Text(
+                        (widget.user?.displayName?.isNotEmpty ?? false)
+                            ? widget.user!.displayName[0].toUpperCase()
+                            : 'U',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
@@ -1438,9 +1478,12 @@ class PostDetailPage extends StatelessWidget {
 class CreatePostSheet extends StatefulWidget {
   final void Function(Post) onCreate;
   final String? initialImagePath;
+  final UserModel? user;
+
   const CreatePostSheet({
     required this.onCreate,
     this.initialImagePath,
+    this.user,
     super.key,
   });
   @override
@@ -1478,9 +1521,13 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
       );
       return;
     }
+
+    // Use authenticated user's name
+    final userName = widget.user?.displayName ?? 'Anonymous User';
+
     final post = Post(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userName: 'You',
+      userName: userName,
       avatarColor: Colors.blueGrey,
       deviceName: name.isEmpty ? 'Captured item' : name,
       category: _category,

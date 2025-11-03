@@ -38,9 +38,6 @@ class EwasteNavigationBar extends StatelessWidget {
         page = ProfilePage(
           devices: devices,
           onDeviceUpdated: onDeviceUpdated ?? (d) {},
-          name: user?.displayName ?? 'User',
-          phone: user?.phoneNumber ?? 'Not provided',
-          address: 'Not provided', // You can add this to UserModel if needed
           user: user,
         );
         break;
@@ -54,7 +51,6 @@ class EwasteNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.only(

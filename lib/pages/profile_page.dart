@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/device.dart';
 import '../models/user_model.dart';
+import '../services/firebase_service.dart';
 import 'home_page.dart';
 import 'inventory_page.dart';
 import 'map_page.dart';
@@ -15,9 +16,6 @@ class ProfilePage extends StatefulWidget {
   final List<Device> devices;
   final void Function(Device) onDeviceUpdated;
   final List<Post> posts;
-  final String name;
-  final String phone;
-  final String address;
   final UserModel? user;
 
   const ProfilePage({
@@ -25,9 +23,6 @@ class ProfilePage extends StatefulWidget {
     required this.devices,
     required this.onDeviceUpdated,
     this.posts = const [],
-    this.name = 'John Doe',
-    this.phone = '9975542210',
-    this.address = 'United States of the Philippines',
     this.user,
   });
 
@@ -113,6 +108,55 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         centerTitle: false,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.black),
+            onSelected: (value) async {
+              if (value == 'logout') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: const Text('Sign Out'),
+                    content: const Text('Are you sure you want to sign out?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(c).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(c).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        child: const Text('Sign Out'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true && mounted) {
+                  await FirebaseService().signOut();
+                  if (mounted) {
+                    // Navigate back to intro screen
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sign Out', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openScan,
@@ -183,8 +227,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader(ColorScheme cs) {
-    // Use authenticated user data if available
-    final displayName = widget.user?.displayName ?? widget.name;
+    // Use authenticated user data
+    final displayName = widget.user?.displayName ?? 'User';
     final email = widget.user?.email ?? '';
     final photoURL = widget.user?.photoURL;
 
@@ -237,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Flexible(
                       child: Text(
-                        email.isNotEmpty ? email : widget.phone,
+                        email.isNotEmpty ? email : 'No email',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.black45,
@@ -252,7 +296,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      'Joined December 2025',
+                      'Member',
                       style: TextStyle(fontSize: 12, color: Colors.black45),
                     ),
                   ],
