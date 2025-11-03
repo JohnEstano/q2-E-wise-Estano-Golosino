@@ -14,23 +14,13 @@ import 'models/user_model.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase (skip if not configured)
+  // Initialize Firebase
   try {
-    // For web, you need to provide Firebase options
-    // For now, we'll skip Firebase initialization to let the app run
-    // await Firebase.initializeApp(
-    //   options: const FirebaseOptions(
-    //     apiKey: "YOUR_API_KEY",
-    //     authDomain: "your-project.firebaseapp.com",
-    //     projectId: "your-project-id",
-    //     storageBucket: "your-project.appspot.com",
-    //     messagingSenderId: "123456789",
-    //     appId: "1:123456789:web:abcdef",
-    //   ),
-    // );
-    debugPrint('Firebase initialization skipped - configure Firebase first');
+    await Firebase.initializeApp();
+    debugPrint('✅ Firebase initialized successfully');
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('⚠️ Firebase initialization failed: $e');
+    debugPrint('The app will run but authentication features will not work.');
   }
 
   // Load .env before runApp so dotenv.env values are available immediately.
@@ -504,217 +494,29 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                     ),
                   ),
 
+                  const SizedBox(height: 24),
+
+                  _roundedSocialButton(
+                    type: AuthLoading.google,
+                    assetPath: 'assets/images/google_logo.webp',
+                    text: 'Continue with Google',
+                    fallback: const SizedBox.shrink(),
+                    onPressed: _signInWithGoogle,
+                  ),
+
                   const SizedBox(height: 16),
 
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _roundedSocialButton(
-                        type: AuthLoading.google,
-                        assetPath: 'assets/images/google_logo.webp',
-                        text: 'Continue with Google',
-                        fallback: const SizedBox.shrink(),
-                        onPressed: _signInWithGoogle,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _roundedSocialButton(
-                        type: AuthLoading.apple,
-                        assetPath: 'assets/icons/apple_logo.png',
-                        text: 'Continue with Apple',
-                        fallback: const Icon(
-                          Icons.apple,
-                          size: 20,
-                          color: Colors.black87,
-                        ),
-                        onPressed: () {
-                          // Apple sign in not implemented yet
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Apple sign in coming soon'),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: Divider(color: Colors.black12, thickness: 1),
-                      ),
-                      SizedBox(width: 10),
-                      Text('or', style: TextStyle(color: Colors.black45)),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Divider(color: Colors.black12, thickness: 1),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: _emailCtl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email Address',
-                      filled: false,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                          width: 1.2,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: cs.primary, width: 1.6),
-                      ),
-                      hintText: 'you@example.com',
+                  const Text(
+                    'Sign in with your Google account to get started',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: _passCtl,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      filled: false,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                          width: 1.2,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: cs.primary, width: 1.6),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscure ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.black45,
-                        ),
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed:
-                          (_loading != AuthLoading.none &&
-                              _loading != AuthLoading.email)
-                          ? null
-                          : _signInWithEmail,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 160),
-                        child: _loading == AuthLoading.email
-                            ? const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                key: ValueKey('email_loading'),
-                                children: [
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Signing in...',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                'Sign in',
-                                key: const ValueKey('email_idle'),
-                                style: TextStyle(
-                                  color: cs.onPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Forgot your password?',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'Create a new account',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
