@@ -25,7 +25,9 @@ class _InventoryPageState extends State<InventoryPage> {
   // Updated color palette
   final Color _seedGreen = const Color(0xFF4CAF50); // More vibrant green
   final Color _seedGreenLight = const Color(0xFFE8F5E9); // Very light green
-  final Color _seedGreenDark = const Color(0xFF2E7D32); // Darker green for contrast
+  final Color _seedGreenDark = const Color(
+    0xFF2E7D32,
+  ); // Darker green for contrast
 
   final List<String> _categories = [
     'All',
@@ -34,19 +36,18 @@ class _InventoryPageState extends State<InventoryPage> {
     'Battery',
     'Electronics',
     'Tablet',
-    'Component'
+    'Component',
   ];
   final List<String> _statuses = ['All', 'available', 'for pickup', 'donated'];
 
   List<Device> get _filteredDevices {
     return widget.devices.where((device) {
-      final matchesSearch = device.name
-          .toLowerCase()
-          .contains(_searchQuery.toLowerCase()) ||
+      final matchesSearch =
+          device.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           device.category.toLowerCase().contains(_searchQuery.toLowerCase());
 
-      final matchesCategory = _categoryFilter == 'All' ||
-          device.category == _categoryFilter;
+      final matchesCategory =
+          _categoryFilter == 'All' || device.category == _categoryFilter;
       final matchesStatus =
           _statusFilter == 'All' || device.status == _statusFilter;
 
@@ -124,10 +125,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
             Text(
               device.category,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
 
             const SizedBox(height: 16),
@@ -195,10 +193,7 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           Text(
             value,
-            style: TextStyle(
-              color: _seedGreen,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: _seedGreen, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -248,9 +243,12 @@ class _InventoryPageState extends State<InventoryPage> {
             color: isSelected ? _seedGreen : Colors.grey.shade300,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0), // Slightly rounded corners
+            borderRadius: BorderRadius.circular(
+              8.0,
+            ), // Slightly rounded corners
           ),
-          showCheckmark: false, // Hide the default check icon to avoid duplication
+          showCheckmark:
+              false, // Hide the default check icon to avoid duplication
           // Remove press elevation and overlay so there's no dark ripple/streak left behind.
           pressElevation: 0,
           elevation: 0,
@@ -293,7 +291,9 @@ class _InventoryPageState extends State<InventoryPage> {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8.0), // Squared with slight rounding
+          borderRadius: BorderRadius.circular(
+            8.0,
+          ), // Squared with slight rounding
           border: Border.all(
             color: _statusFilter == 'All' ? Colors.grey.shade300 : _seedGreen,
           ),
@@ -314,10 +314,7 @@ class _InventoryPageState extends State<InventoryPage> {
         ListTile(
           leading: CircleAvatar(
             backgroundColor: _seedGreenLight, // Lighter green background
-            child: Icon(
-              _iconForCategory(device.category),
-              color: _seedGreen,
-            ),
+            child: Icon(_iconForCategory(device.category), color: _seedGreen),
           ),
           title: Text(
             device.name,
@@ -328,16 +325,11 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           subtitle: Text(
             '${device.category} • ${device.status} • x${device.quantity}',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(color: Colors.grey.shade600),
           ),
           trailing: Text(
             '${device.estWeightKg} kg',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: _seedGreen,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w500, color: _seedGreen),
           ),
           onTap: () => _showDeviceDetails(device),
         ),
@@ -357,7 +349,7 @@ class _InventoryPageState extends State<InventoryPage> {
         elevation: 0.8,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        iconTheme: IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
             tooltip: 'Add device (demo)',
@@ -433,40 +425,38 @@ class _InventoryPageState extends State<InventoryPage> {
             Expanded(
               child: filteredDevices.isEmpty
                   ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 64,
-                      color: Colors.grey.shade300,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No devices found',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey.shade600,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 64,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No devices found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Try adjusting your search or filters',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Try adjusting your search or filters',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+                    )
                   : ListView.builder(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                itemCount: filteredDevices.length,
-                itemBuilder: (context, index) {
-                  final device = filteredDevices[index];
-                  return _buildInventoryItem(device);
-                },
-              ),
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      itemCount: filteredDevices.length,
+                      itemBuilder: (context, index) {
+                        final device = filteredDevices[index];
+                        return _buildInventoryItem(device);
+                      },
+                    ),
             ),
           ],
         ),

@@ -4,17 +4,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:video_player/video_player.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 // <- IMPORT THE HOME PAGE
 import 'pages/home_page.dart';
+import 'services/firebase_service.dart';
+import 'models/user_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase (skip if not configured)
+  try {
+    // For web, you need to provide Firebase options
+    // For now, we'll skip Firebase initialization to let the app run
+    // await Firebase.initializeApp(
+    //   options: const FirebaseOptions(
+    //     apiKey: "YOUR_API_KEY",
+    //     authDomain: "your-project.firebaseapp.com",
+    //     projectId: "your-project-id",
+    //     storageBucket: "your-project.appspot.com",
+    //     messagingSenderId: "123456789",
+    //     appId: "1:123456789:web:abcdef",
+    //   ),
+    // );
+    debugPrint('Firebase initialization skipped - configure Firebase first');
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+  }
+
   // Load .env before runApp so dotenv.env values are available immediately.
   try {
     await dotenv.load(fileName: ".env");
-    final hasKey = dotenv.env['OPENAI_API_KEY'] != null && dotenv.env['OPENAI_API_KEY']!.isNotEmpty;
+    final hasKey =
+        dotenv.env['OPENAI_API_KEY'] != null &&
+        dotenv.env['OPENAI_API_KEY']!.isNotEmpty;
     debugPrint('dotenv loaded. OPENAI_API_KEY present: $hasKey');
   } catch (e) {
     debugPrint('dotenv load failed: $e');
@@ -79,7 +103,7 @@ class _IntroScreenState extends State<IntroScreen> {
   Widget _videoBackground(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     if (!_initialized || !_controller.value.isInitialized) {
-      return Container(color: cs.background);
+      return Container(color: cs.surface);
     }
 
     return SizedBox.expand(
@@ -101,12 +125,6 @@ class _IntroScreenState extends State<IntroScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const _AuthBottomSheet(),
-    );
-  }
-
-  void _goToLoginDummy() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LoginDummyPage()),
     );
   }
 
@@ -148,15 +166,11 @@ class _IntroScreenState extends State<IntroScreen> {
                         color: cs.primary.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: Icon(
-                        Icons.eco,
-                        color: cs.primary,
-                        size: 36,
-                      ),
+                      child: Icon(Icons.eco, color: cs.primary, size: 36),
                     ),
                   ),
                   const SizedBox(height: 34),
-                  Align(
+                  const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "E-Wise",
@@ -169,7 +183,7 @@ class _IntroScreenState extends State<IntroScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Align(
+                  const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Manage your e-waste the smart and sustainable way.",
@@ -213,12 +227,12 @@ class _IntroScreenState extends State<IntroScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         'New to this app? ',
                         style: TextStyle(color: Colors.white70),
                       ),
                       TextButton(
-                        onPressed: _goToLoginDummy,
+                        onPressed: _openAuthBottomSheet,
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: const Size(0, 0),
@@ -234,7 +248,6 @@ class _IntroScreenState extends State<IntroScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 18),
                 ],
               ),
@@ -249,7 +262,7 @@ class _IntroScreenState extends State<IntroScreen> {
 enum AuthLoading { none, google, apple, email }
 
 class _AuthBottomSheet extends StatefulWidget {
-  const _AuthBottomSheet({super.key});
+  const _AuthBottomSheet();
 
   @override
   State<_AuthBottomSheet> createState() => _AuthBottomSheetState();
@@ -258,6 +271,7 @@ class _AuthBottomSheet extends StatefulWidget {
 class _AuthBottomSheetState extends State<_AuthBottomSheet> {
   final TextEditingController _emailCtl = TextEditingController();
   final TextEditingController _passCtl = TextEditingController();
+  final FirebaseService _firebaseService = FirebaseService();
   bool _obscure = true;
   AuthLoading _loading = AuthLoading.none;
 
@@ -268,17 +282,77 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
     super.dispose();
   }
 
-  Future<void> _signIn(AuthLoading type) async {
+  Future<void> _signInWithGoogle() async {
     if (_loading != AuthLoading.none) return;
-    setState(() => _loading = type);
+    setState(() => _loading = AuthLoading.google);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 700));
+      final user = await _firebaseService.signInWithGoogle();
       if (!mounted) return;
-      // when auth simulation completes, go through feature intro pages
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const FeatureIntroPages()));
-    } finally {
-      if (mounted) setState(() => _loading = AuthLoading.none);
+
+      if (user != null) {
+        // Successfully signed in, navigate to feature intro pages
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => FeatureIntroPages(user: user)),
+        );
+      } else {
+        // User cancelled the sign-in
+        setState(() => _loading = AuthLoading.none);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = AuthLoading.none);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to sign in with Google: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _signInWithEmail() async {
+    if (_loading != AuthLoading.none) return;
+
+    final email = _emailCtl.text.trim();
+    final password = _passCtl.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both email and password'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _loading = AuthLoading.email);
+
+    try {
+      final user = await _firebaseService.signInWithEmailPassword(
+        email,
+        password,
+      );
+      if (!mounted) return;
+
+      if (user != null) {
+        // Successfully signed in
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => FeatureIntroPages(user: user)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = AuthLoading.none);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to sign in: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -287,6 +361,7 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
     required String assetPath,
     required String text,
     required Widget fallback,
+    VoidCallback? onPressed,
   }) {
     final bool active = _loading == type;
     final bool disabled = _loading != AuthLoading.none && _loading != type;
@@ -294,11 +369,13 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: disabled ? null : () => _signIn(type),
+        onPressed: disabled ? null : onPressed,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           side: BorderSide(color: Colors.grey.shade300),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
         child: AnimatedSwitcher(
@@ -306,40 +383,54 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
           switchInCurve: Curves.easeIn,
           child: active
               ? Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            key: const ValueKey('loading'),
-            children: [
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text('Signing in...', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700)),
-            ],
-          )
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  key: const ValueKey('loading'),
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Signing in...',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                )
               : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            key: const ValueKey('idle'),
-            children: [
-              SizedBox(
-                width: 22,
-                height: 22,
-                child: Image.asset(
-                  assetPath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, err, st) {
-                    return fallback;
-                  },
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  key: const ValueKey('idle'),
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Image.asset(
+                        assetPath,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, err, st) {
+                          return fallback;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      text,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Text(text, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w700)),
-            ],
-          ),
         ),
       ),
     );
@@ -402,7 +493,7 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
 
                   const SizedBox(height: 16),
 
-                  Center(
+                  const Center(
                     child: Text(
                       'Sign in',
                       style: TextStyle(
@@ -423,6 +514,7 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                         assetPath: 'assets/images/google_logo.webp',
                         text: 'Continue with Google',
                         fallback: const SizedBox.shrink(),
+                        onPressed: _signInWithGoogle,
                       ),
 
                       const SizedBox(height: 12),
@@ -431,20 +523,36 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                         type: AuthLoading.apple,
                         assetPath: 'assets/icons/apple_logo.png',
                         text: 'Continue with Apple',
-                        fallback: const Icon(Icons.apple, size: 20, color: Colors.black87),
+                        fallback: const Icon(
+                          Icons.apple,
+                          size: 20,
+                          color: Colors.black87,
+                        ),
+                        onPressed: () {
+                          // Apple sign in not implemented yet
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Apple sign in coming soon'),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 14),
 
-                  Row(
+                  const Row(
                     children: [
-                      const Expanded(child: Divider(color: Colors.black12, thickness: 1)),
-                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Divider(color: Colors.black12, thickness: 1),
+                      ),
+                      SizedBox(width: 10),
                       Text('or', style: TextStyle(color: Colors.black45)),
-                      const SizedBox(width: 10),
-                      const Expanded(child: Divider(color: Colors.black12, thickness: 1)),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Divider(color: Colors.black12, thickness: 1),
+                      ),
                     ],
                   ),
 
@@ -456,10 +564,16 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                     decoration: InputDecoration(
                       labelText: 'Email Address',
                       filled: false,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300, width: 1.2),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.2,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -477,10 +591,16 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                     decoration: InputDecoration(
                       labelText: 'Password',
                       filled: false,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300, width: 1.2),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.2,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -501,35 +621,54 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                   SizedBox(
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: (_loading != AuthLoading.none && _loading != AuthLoading.email)
+                      onPressed:
+                          (_loading != AuthLoading.none &&
+                              _loading != AuthLoading.email)
                           ? null
-                          : () => _signIn(AuthLoading.email),
+                          : _signInWithEmail,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: cs.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         elevation: 0,
                       ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 160),
                         child: _loading == AuthLoading.email
-                            ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          key: const ValueKey('email_loading'),
-                          children: const [
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                            ),
-                            SizedBox(width: 10),
-                            Text('Signing in...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                          ],
-                        )
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                key: ValueKey('email_loading'),
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Signing in...',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              )
                             : Text(
-                          'Sign in',
-                          key: const ValueKey('email_idle'),
-                          style: TextStyle(color: cs.onPrimary, fontSize: 16, fontWeight: FontWeight.w800),
-                        ),
+                                'Sign in',
+                                key: const ValueKey('email_idle'),
+                                style: TextStyle(
+                                  color: cs.onPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -541,9 +680,12 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                     children: [
                       TextButton(
                         onPressed: () {},
-                        child: Text(
+                        child: const Text(
                           'Forgot your password?',
-                          style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -558,11 +700,16 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
                         side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
                       child: const Text(
                         'Create a new account',
-                        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -579,7 +726,9 @@ class _AuthBottomSheetState extends State<_AuthBottomSheet> {
 }
 
 class FeatureIntroPages extends StatefulWidget {
-  const FeatureIntroPages({super.key});
+  final UserModel user;
+
+  const FeatureIntroPages({super.key, required this.user});
 
   @override
   State<FeatureIntroPages> createState() => _FeatureIntroPagesState();
@@ -593,7 +742,7 @@ class _FeatureIntroPagesState extends State<FeatureIntroPages> {
     "Sell, Repair, Manage",
     "Inventory",
     "Nearby pickup locations",
-    "You're all set!"
+    "You're all set!",
   ];
 
   final List<String> descriptions = [
@@ -601,7 +750,7 @@ class _FeatureIntroPagesState extends State<FeatureIntroPages> {
     "List devices for sale, request repair services, and manage service history from one place.",
     "Keep track of devices, stock levels, and maintenance logs. Organize and search your inventory easily.",
     "Find nearby e-waste collection points, view pickup schedules, and request doorstep pickup where available.",
-    "Great — you’ve seen the highlights. Ready to explore Ewise and manage your e-waste the smart way."
+    "Great — you’ve seen the highlights. Ready to explore Ewise and manage your e-waste the smart way.",
   ];
 
   void _next() {
@@ -609,7 +758,9 @@ class _FeatureIntroPagesState extends State<FeatureIntroPages> {
       setState(() => _index += 1);
     } else {
       // NAVIGATE TO THE REAL HOME PAGE
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => HomePage()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomePage(user: widget.user)),
+      );
     }
   }
 
@@ -628,141 +779,183 @@ class _FeatureIntroPagesState extends State<FeatureIntroPages> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: LayoutBuilder(builder: (context, constraints) {
-          final double maxH = constraints.maxHeight;
-          const double topBarH = 64.0;
-          const double bottomControlsH = 140.0;
-          double remaining = (maxH - topBarH - bottomControlsH).clamp(260.0, maxH - topBarH - 80.0);
-          double imageArea = (remaining * 0.55).clamp(140.0, 520.0);
-          final double contentBlockHeight = (remaining - imageArea).clamp(120.0, 220.0);
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double maxH = constraints.maxHeight;
+            const double topBarH = 64.0;
+            const double bottomControlsH = 140.0;
+            double remaining = (maxH - topBarH - bottomControlsH).clamp(
+              260.0,
+              maxH - topBarH - 80.0,
+            );
+            double imageArea = (remaining * 0.55).clamp(140.0, 520.0);
+            final double contentBlockHeight = (remaining - imageArea).clamp(
+              120.0,
+              220.0,
+            );
 
-          return Column(
-            children: [
-              SizedBox(
-                height: 56,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.black87),
-                        onPressed: _back,
-                        tooltip: 'Back',
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => HomePage())),
-                        child: Text('Skip', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SizedBox(
-                height: imageArea,
-                width: double.infinity,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
-                  switchInCurve: Curves.easeIn,
-                  switchOutCurve: Curves.easeOut,
-                  transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
-                  child: SizedBox(
-                    key: ValueKey<int>(_index),
-                    height: imageArea,
-                    width: double.infinity,
-                    child: Center(
-                      child: SizedBox(
-                        width: imageArea * 0.9,
-                        height: imageArea * 0.9,
-                        // <-- updated here to use assets/images/1.png .. assets/images/5.png
-                        child: Image.asset(
-                          'assets/images/${_index + 1}.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(Icons.broken_image, size: 64, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Image missing', style: TextStyle(color: Colors.grey)),
-                                ],
-                              ),
-                            );
-                          },
+            return Column(
+              children: [
+                SizedBox(
+                  height: 56,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.black87,
+                          ),
+                          onPressed: _back,
+                          tooltip: 'Back',
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 8.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      height: contentBlockHeight,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeIn,
-                        switchOutCurve: Curves.easeOut,
-                        transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
-                        child: _ContentBlock(
-                          key: ValueKey<int>(_index),
-                          title: titles[_index],
-                          description: descriptions[_index],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: _StaticIndicator(total: titles.length, activeIndex: _index),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    SizedBox(
-                      height: 64,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 52,
-                              child: FilledButton(
-                                onPressed: _next,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: cs.primary,
-                                  foregroundColor: cs.onPrimary,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => HomePage(user: widget.user),
                                 ),
-                                child: Text(
-                                  _index == titles.length - 1 ? "That's great" : 'Next',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
+                              ),
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(
+                  height: imageArea,
+                  width: double.infinity,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeIn,
+                    switchOutCurve: Curves.easeOut,
+                    transitionBuilder: (child, anim) =>
+                        FadeTransition(opacity: anim, child: child),
+                    child: SizedBox(
+                      key: ValueKey<int>(_index),
+                      height: imageArea,
+                      width: double.infinity,
+                      child: Center(
+                        child: SizedBox(
+                          width: imageArea * 0.9,
+                          height: imageArea * 0.9,
+                          // <-- updated here to use assets/images/1.png .. assets/images/5.png
+                          child: Image.asset(
+                            'assets/images/${_index + 1}.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Image missing',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28.0,
+                    vertical: 8.0,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: contentBlockHeight,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          switchInCurve: Curves.easeIn,
+                          switchOutCurve: Curves.easeOut,
+                          transitionBuilder: (child, anim) =>
+                              FadeTransition(opacity: anim, child: child),
+                          child: _ContentBlock(
+                            key: ValueKey<int>(_index),
+                            title: titles[_index],
+                            description: descriptions[_index],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                        child: _StaticIndicator(
+                          total: titles.length,
+                          activeIndex: _index,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      SizedBox(
+                        height: 64,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 52,
+                                child: FilledButton(
+                                  onPressed: _next,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: cs.primary,
+                                    foregroundColor: cs.onPrimary,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _index == titles.length - 1
+                                        ? "That's great"
+                                        : 'Next',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        }),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -772,7 +965,11 @@ class _ContentBlock extends StatelessWidget {
   final String title;
   final String description;
 
-  const _ContentBlock({super.key, required this.title, required this.description});
+  const _ContentBlock({
+    super.key,
+    required this.title,
+    required this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -820,7 +1017,7 @@ class _StaticIndicator extends StatelessWidget {
   final int total;
   final int activeIndex;
 
-  const _StaticIndicator({super.key, required this.total, required this.activeIndex});
+  const _StaticIndicator({required this.total, required this.activeIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -838,35 +1035,13 @@ class _StaticIndicator extends StatelessWidget {
             height: dotSize,
             margin: EdgeInsets.only(right: i == total - 1 ? 0 : gap),
             decoration: BoxDecoration(
-              color: i == activeIndex ? cs.primary : cs.onSurface.withOpacity(0.36),
+              color: i == activeIndex
+                  ? cs.primary
+                  : cs.onSurface.withOpacity(0.36),
               shape: BoxShape.circle,
             ),
           );
         }),
-      ),
-    );
-  }
-}
-
-class LoginDummyPage extends StatelessWidget {
-  const LoginDummyPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Log in (Dummy)'),
-        backgroundColor: Colors.black,
-        foregroundColor: cs.primary,
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const FeatureIntroPages()),
-          ),
-          child: const Text('Continue (dummy)'),
-        ),
       ),
     );
   }

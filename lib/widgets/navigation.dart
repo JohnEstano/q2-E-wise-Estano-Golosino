@@ -3,14 +3,21 @@ import '../pages/home_page.dart';
 import '../pages/map_page.dart';
 import '../pages/pickup_page.dart';
 import '../pages/profile_page.dart';
-import '../models/device.dart'; // Add this import
+import '../models/device.dart';
+import '../models/user_model.dart';
 
 class EwasteNavigationBar extends StatelessWidget {
   final int selectedIndex;
+  final UserModel? user;
+  final List<Device> devices;
+  final void Function(Device)? onDeviceUpdated;
 
   const EwasteNavigationBar({
     super.key,
     required this.selectedIndex,
+    this.user,
+    this.devices = const [],
+    this.onDeviceUpdated,
   });
 
   void _handleNavigation(BuildContext context, int idx) {
@@ -18,7 +25,7 @@ class EwasteNavigationBar extends StatelessWidget {
     Widget page;
     switch (idx) {
       case 0:
-        page = const HomePage();
+        page = HomePage(user: user);
         break;
       case 1:
         page = const MapPage();
@@ -29,25 +36,37 @@ class EwasteNavigationBar extends StatelessWidget {
       case 4:
         // Provide required arguments for ProfilePage
         page = ProfilePage(
-          devices: const [],
-          onDeviceUpdated: (d) {},
+          devices: devices,
+          onDeviceUpdated: onDeviceUpdated ?? (d) {},
+          name: user?.displayName ?? 'User',
+          phone: user?.phoneNumber ?? 'Not provided',
+          address: 'Not provided', // You can add this to UserModel if needed
+          user: user,
         );
         break;
       default:
         return;
     }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (c) => page));
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (c) => page));
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
         child: BottomAppBar(
           color: Colors.white,
           height: 70,
@@ -119,11 +138,18 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(selected ? activeIcon : icon, size: 26, color: selected ? cs.primary : Colors.grey[600]),
+            Icon(
+              selected ? activeIcon : icon,
+              size: 26,
+              color: selected ? cs.primary : Colors.grey[600],
+            ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 12, color: selected ? cs.primary : Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: selected ? cs.primary : Colors.grey[600],
+              ),
             ),
           ],
         ),

@@ -1,13 +1,15 @@
 // lib/pages/profile_page.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../models/device.dart'; 
-import 'home_page.dart'; 
+import '../models/device.dart';
+import '../models/user_model.dart';
+import 'home_page.dart';
 import 'inventory_page.dart';
 import 'map_page.dart';
 import 'pickup_page.dart';
 import 'camera_page.dart';
-import 'leaderboards_page.dart'; 
+import 'leaderboards_page.dart';
+import '../widgets/navigation.dart' as nav;
 
 class ProfilePage extends StatefulWidget {
   final List<Device> devices;
@@ -16,6 +18,7 @@ class ProfilePage extends StatefulWidget {
   final String name;
   final String phone;
   final String address;
+  final UserModel? user;
 
   const ProfilePage({
     super.key,
@@ -25,6 +28,7 @@ class ProfilePage extends StatefulWidget {
     this.name = 'John Doe',
     this.phone = '9975542210',
     this.address = 'United States of the Philippines',
+    this.user,
   });
 
   @override
@@ -36,7 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
   double _deviceWeight(Device d) {
     final double est = (d.estWeightKg ?? 0.0);
     final qtyRaw = d.quantity ?? 0;
-    final double qty = qtyRaw is int ? qtyRaw.toDouble() : (qtyRaw as double);
+    final double qty = qtyRaw.toDouble();
     return est * qty;
   }
 
@@ -69,9 +73,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _openScan() async {
-    await Navigator.of(context).push<String?>(
-      MaterialPageRoute(builder: (c) => const CameraPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push<String?>(MaterialPageRoute(builder: (c) => const CameraPage()));
     // You can add post-scan logic here if needed.
   }
 
@@ -88,8 +92,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     const double outerPadding = 16.0;
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -119,30 +123,11 @@ class _ProfilePageState extends State<ProfilePage> {
         child: const Icon(Icons.camera_alt, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: EwasteNavigationBar(
+      bottomNavigationBar: nav.EwasteNavigationBar(
         selectedIndex: 4,
-        onNavigate: (c, idx) {
-          if (idx == 4) return;
-          switch (idx) {
-            case 0:
-              Navigator.of(c).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-              break;
-            case 1:
-              Navigator.of(c).pushReplacement(
-                MaterialPageRoute(builder: (_) => const MapPage()),
-              );
-              break;
-            case 3:
-              Navigator.of(c).pushReplacement(
-                MaterialPageRoute(builder: (_) => const PickupPage()),
-              );
-              break;
-            default:
-              break;
-          }
-        },
+        user: widget.user,
+        devices: widget.devices,
+        onDeviceUpdated: widget.onDeviceUpdated,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -150,11 +135,16 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             _buildProfileHeader(cs),
             Padding(
-              padding: const EdgeInsets.fromLTRB(outerPadding, 18, outerPadding, outerPadding),
+              padding: const EdgeInsets.fromLTRB(
+                outerPadding,
+                18,
+                outerPadding,
+                outerPadding,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
+                  const Text(
                     'Overview',
                     style: TextStyle(
                       fontSize: 18,
@@ -163,14 +153,17 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildOverviewSingleCardList(cs, context), // stacked rows + inventory
+                  _buildOverviewSingleCardList(
+                    cs,
+                    context,
+                  ), // stacked rows + inventory
                   const SizedBox(height: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'My Posts',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: Colors.black87,
@@ -190,11 +183,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader(ColorScheme cs) {
+    // Use authenticated user data if available
+    final displayName = widget.user?.displayName ?? widget.name;
+    final email = widget.user?.email ?? '';
+    final photoURL = widget.user?.photoURL;
+
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.only(
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(14),
           bottomRight: Radius.circular(14),
         ),
@@ -203,18 +201,31 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 34,
-            backgroundColor: cs.primary,
-            child: const Icon(Icons.person, color: Colors.white, size: 30),
-          ),
+          photoURL != null
+              ? CircleAvatar(
+                  radius: 34,
+                  backgroundImage: NetworkImage(photoURL),
+                  backgroundColor: cs.primary,
+                )
+              : CircleAvatar(
+                  radius: 34,
+                  backgroundColor: cs.primary,
+                  child: Text(
+                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.name,
+                  displayName,
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -223,23 +234,26 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 6),
                 Row(
-                  children: const [
-                    Text(
-                      '@johndoe',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black45,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        email.isNotEmpty ? email : widget.phone,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black45,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Text('•', style: TextStyle(fontSize: 12, color: Colors.black38)),
-                    SizedBox(width: 8),
-                    Text(
+                    const SizedBox(width: 8),
+                    const Text(
+                      '•',
+                      style: TextStyle(fontSize: 12, color: Colors.black38),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
                       'Joined December 2025',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black45,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.black45),
                     ),
                   ],
                 ),
@@ -255,16 +269,16 @@ class _ProfilePageState extends State<ProfilePage> {
   /// Overview card with links, icons, and correct subvalues
   Widget _buildOverviewSingleCardList(ColorScheme cs, BuildContext context) {
     // Dummy scores as requested
-    final int ecoscoreInt = 50;
-    final int ecoscoreRank = 16;
-    final int totalScans = 2;
-    final int pickups = 5;
-    final int ecoscoreGrowth = 12; // percent growth
+    const int ecoscoreInt = 50;
+    const int ecoscoreRank = 16;
+    const int totalScans = 2;
+    const int pickups = 5;
+    const int ecoscoreGrowth = 12; // percent growth
 
-    final Color iconEcoscore = Colors.green; // keep green for ecoscore
-    final Color iconScans = Colors.blue;     // blue for scans
-    final Color iconPickup = Colors.redAccent; // red for pickups
-    final Color iconInventory = Colors.deepPurple; // purple for inventory
+    const Color iconEcoscore = Colors.green; // keep green for ecoscore
+    const Color iconScans = Colors.blue; // blue for scans
+    const Color iconPickup = Colors.redAccent; // red for pickups
+    const Color iconInventory = Colors.deepPurple; // purple for inventory
 
     return Container(
       decoration: BoxDecoration(
@@ -277,7 +291,6 @@ class _ProfilePageState extends State<ProfilePage> {
           InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-           
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (c) => const LeaderboardsPage()),
               );
@@ -289,7 +302,10 @@ class _ProfilePageState extends State<ProfilePage> {
               valueWidget: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -317,7 +333,7 @@ class _ProfilePageState extends State<ProfilePage> {
               subvalueWidget: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.arrow_upward, color: Colors.green, size: 14),
+                  const Icon(Icons.arrow_upward, color: Colors.green, size: 14),
                   Text(
                     '+$ecoscoreGrowth%',
                     style: const TextStyle(
@@ -328,16 +344,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ],
               ),
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 26),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+                size: 26,
+              ),
             ),
           ),
           const Divider(height: 1, thickness: 0.5),
           InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (c) => const CameraPage()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (c) => const CameraPage()));
             },
             child: _overviewRow(
               icon: Icons.document_scanner,
@@ -352,7 +372,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               subvalueWidget: null,
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 26),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+                size: 26,
+              ),
             ),
           ),
           const Divider(height: 1, thickness: 0.5),
@@ -360,11 +384,13 @@ class _ProfilePageState extends State<ProfilePage> {
             borderRadius: BorderRadius.circular(12),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (c) => PickupPage(
-                  devices: widget.devices,
-                  posts: widget.posts,
-                  onDeviceUpdated: widget.onDeviceUpdated,
-                )),
+                MaterialPageRoute(
+                  builder: (c) => PickupPage(
+                    devices: widget.devices,
+                    posts: widget.posts,
+                    onDeviceUpdated: widget.onDeviceUpdated,
+                  ),
+                ),
               );
             },
             child: _overviewRow(
@@ -380,7 +406,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               subvalueWidget: null,
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 26),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+                size: 26,
+              ),
             ),
           ),
           const Divider(height: 1, thickness: 0.5),
@@ -422,7 +452,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
               subvalueWidget: null,
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 26),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+                size: 26,
+              ),
             ),
           ),
         ],
@@ -494,12 +528,14 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
-              )),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
           const SizedBox(height: 10),
           child,
         ],
@@ -519,7 +555,8 @@ class _ProfilePageState extends State<ProfilePage> {
               avatarColor: Colors.blueGrey,
               deviceName: 'Your first post',
               category: 'Electronics',
-              description: 'Start sharing your e-waste journey with the community!',
+              description:
+                  'Start sharing your e-waste journey with the community!',
               status: 'available',
               estWeightKg: 0.5,
               createdAt: DateTime.now().subtract(const Duration(days: 1)),
@@ -534,7 +571,8 @@ class _ProfilePageState extends State<ProfilePage> {
               avatarColor: Colors.blueGrey,
               deviceName: 'Another example',
               category: 'Phone',
-              description: 'This is how your posts will appear when you create them',
+              description:
+                  'This is how your posts will appear when you create them',
               status: 'for pickup',
               estWeightKg: 0.2,
               createdAt: DateTime.now().subtract(const Duration(hours: 2)),
@@ -555,8 +593,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPostCard(BuildContext context, Post post) {
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return Card(
       elevation: 0,
@@ -577,7 +615,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundColor: post.avatarColor,
                   child: Text(
                     post.userName[0],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -610,32 +651,35 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.zero, bottom: Radius.zero),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.zero,
+              bottom: Radius.zero,
+            ),
             child: AspectRatio(
               aspectRatio: 3 / 2,
               child: post.imagePath != null
                   ? Container(
-                color: Colors.grey[50],
-                child: post.imagePath!.startsWith('asset:')
-                    ? Image.asset(
-                  post.imagePath!.substring(6),
-                  fit: BoxFit.cover,
-                )
-                    : Image.file(
-                  File(post.imagePath!),
-                  fit: BoxFit.cover,
-                ),
-              )
+                      color: Colors.grey[50],
+                      child: post.imagePath!.startsWith('asset:')
+                          ? Image.asset(
+                              post.imagePath!.substring(6),
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              File(post.imagePath!),
+                              fit: BoxFit.cover,
+                            ),
+                    )
                   : Container(
-                color: Colors.grey[50],
-                child: Center(
-                  child: Icon(
-                    Icons.image,
-                    size: 56,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              ),
+                      color: Colors.grey[50],
+                      child: Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 56,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ),
             ),
           ),
           Padding(
@@ -662,11 +706,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(post.status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _getStatusColor(post.status).withOpacity(0.3)),
+                        border: Border.all(
+                          color: _getStatusColor(post.status).withOpacity(0.3),
+                        ),
                       ),
                       child: Text(
                         post.status,
@@ -725,137 +774,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/* ------------------------------------------------------------------
-   EwasteNavigationBar (inlined here to avoid circular-import issues)
-------------------------------------------------------------------*/
-class EwasteNavigationBar extends StatelessWidget {
-  final int selectedIndex;
-  final void Function(BuildContext, int)? onNavigate;
-
-  const EwasteNavigationBar({
-    super.key,
-    required this.selectedIndex,
-    this.onNavigate,
-  });
-
-  void _handleNavigation(BuildContext context, int idx) {
-    if (onNavigate != null) {
-      onNavigate!(context, idx);
-      return;
-    }
-    if (idx == selectedIndex) return;
-    Widget? page;
-    switch (idx) {
-      case 0:
-        page = const HomePage();
-        break;
-      case 1:
-        page = const MapPage();
-        break;
-      case 3:
-        page = const PickupPage();
-        break;
-      case 4:
-        return;
-      default:
-        return;
-    }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (c) => page!));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-        child: BottomAppBar(
-          color: Colors.white,
-          height: 70,
-          padding: EdgeInsets.zero,
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 8,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: 'Home',
-                selected: selectedIndex == 0,
-                onTap: () => _handleNavigation(context, 0),
-              ),
-              _NavItem(
-                icon: Icons.map_outlined,
-                activeIcon: Icons.map,
-                label: 'Maps',
-                selected: selectedIndex == 1,
-                onTap: () => _handleNavigation(context, 1),
-              ),
-              const SizedBox(width: 40),
-              _NavItem(
-                icon: Icons.local_shipping_outlined,
-                activeIcon: Icons.local_shipping,
-                label: 'Pickup',
-                selected: selectedIndex == 3,
-                onTap: () => _handleNavigation(context, 3),
-              ),
-              _NavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profile',
-                selected: selectedIndex == 4,
-                onTap: () => _handleNavigation(context, 4),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(selected ? activeIcon : icon, size: 26, color: selected ? cs.primary : Colors.grey[600]),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 12, color: selected ? cs.primary : Colors.grey[600]),
-            ),
-          ],
-        ),
       ),
     );
   }

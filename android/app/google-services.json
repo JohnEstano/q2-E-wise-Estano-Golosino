@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "362094165207",
+    "project_id": "ewise-e5ff8",
+    "storage_bucket": "ewise-e5ff8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:362094165207:android:897ceebadf8029f0aec492",
+        "android_client_info": {
+          "package_name": "com.example.ewasteapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBesFVgDP0VTqNudHpW2zeBR8HSGH-dgIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

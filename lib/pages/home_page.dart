@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'inventory_page.dart';
 import '../models/device.dart';
+import '../models/user_model.dart';
 import 'profile_page.dart';
 import 'camera_page.dart';
 import 'map_page.dart';
@@ -13,7 +14,10 @@ import 'package:shimmer/shimmer.dart';
 import '../widgets/navigation.dart' as nav;
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final UserModel? user;
+
+  const HomePage({super.key, this.user});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -61,19 +65,21 @@ class _HomePageState extends State<HomePage> {
 
   final List<Device> _devices = [
     Device(
-        id: 'd1',
-        name: 'Old Laptop',
-        category: 'Laptop',
-        status: 'for pickup',
-        quantity: 1,
-        estWeightKg: 2.0),
+      id: 'd1',
+      name: 'Old Laptop',
+      category: 'Laptop',
+      status: 'for pickup',
+      quantity: 1,
+      estWeightKg: 2.0,
+    ),
     Device(
-        id: 'd2',
-        name: 'Phone Model X',
-        category: 'Phone',
-        status: 'available',
-        quantity: 3,
-        estWeightKg: 0.2),
+      id: 'd2',
+      name: 'Phone Model X',
+      category: 'Phone',
+      status: 'available',
+      quantity: 3,
+      estWeightKg: 0.2,
+    ),
   ];
 
   final List<Post> _posts = [
@@ -84,7 +90,7 @@ class _HomePageState extends State<HomePage> {
       deviceName: 'Welcome to E-Wise',
       category: 'Awareness',
       description:
-      'Start your first-ever electronic waste scan with E-wise! 🎉\n\n'
+          'Start your first-ever electronic waste scan with E-wise! 🎉\n\n'
           '• Tap the camera button to scan an item\n'
           '• Get instant identification and guidance\n'
           '• Learn proper disposal methods\n'
@@ -105,7 +111,7 @@ class _HomePageState extends State<HomePage> {
       deviceName: 'What is E-waste?',
       category: 'Awareness',
       description:
-      'E-waste = discarded electronic devices (phones, laptops, chargers, batteries).\n\n'
+          'E-waste = discarded electronic devices (phones, laptops, chargers, batteries).\n\n'
           '• Contains hazardous materials like lead, mercury, and cadmium\n'
           '• Also contains valuable metals like gold, silver, and copper\n'
           '• Only 17.4% of e-waste is properly recycled globally\n'
@@ -125,7 +131,7 @@ class _HomePageState extends State<HomePage> {
       deviceName: 'Prepare devices for drop-off',
       category: 'Awareness',
       description:
-      'Before recycling or donating your electronics:\n\n'
+          'Before recycling or donating your electronics:\n\n'
           '1. Back up & remove personal data completely\n'
           '2. Remove batteries if possible (they often need separate recycling)\n'
           '3. Group cables and accessories together\n'
@@ -147,7 +153,7 @@ class _HomePageState extends State<HomePage> {
       deviceName: 'Battery Recycling Guide',
       category: 'Awareness',
       description:
-      'Batteries require special handling:\n\n'
+          'Batteries require special handling:\n\n'
           '• Lithium-ion batteries can cause fires if damaged\n'
           '• Never dispose of batteries in regular trash\n'
           '• Tape battery terminals before recycling\n'
@@ -162,32 +168,35 @@ class _HomePageState extends State<HomePage> {
       imagePath: null,
     ),
     Post(
-        id: 'p1',
-        userName: 'Marisol',
-        avatarColor: const Color(0xFF00695C),
-        deviceName: 'iPhone 8 (broken screen)',
-        category: 'Phone',
-        description:
-        'Found this in the barangay cleanup. Screen cracked but still boots — anyone wants to repair or reuse?',
-        status: 'available',
-        estWeightKg: 0.25,
-        likes: 8,
-        comments: 2,
-        createdAt: DateTime.now().subtract(const Duration(hours: 6)),
-        imagePath: null),
+      id: 'p1',
+      userName: 'Marisol',
+      avatarColor: const Color(0xFF00695C),
+      deviceName: 'iPhone 8 (broken screen)',
+      category: 'Phone',
+      description:
+          'Found this in the barangay cleanup. Screen cracked but still boots — anyone wants to repair or reuse?',
+      status: 'available',
+      estWeightKg: 0.25,
+      likes: 8,
+      comments: 2,
+      createdAt: DateTime.now().subtract(const Duration(hours: 6)),
+      imagePath: null,
+    ),
     Post(
-        id: 'p2',
-        userName: 'Rico (School Club)',
-        avatarColor: const Color(0xFF2E7D32),
-        deviceName: 'Old Dell Laptop',
-        category: 'Laptop',
-        description: 'Battery swollen — need advice for safe drop off. Located in QC.',
-        status: 'for pickup',
-        estWeightKg: 2.1,
-        likes: 4,
-        comments: 3,
-        createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-        imagePath: null),
+      id: 'p2',
+      userName: 'Rico (School Club)',
+      avatarColor: const Color(0xFF2E7D32),
+      deviceName: 'Old Dell Laptop',
+      category: 'Laptop',
+      description:
+          'Battery swollen — need advice for safe drop off. Located in QC.',
+      status: 'for pickup',
+      estWeightKg: 2.1,
+      likes: 4,
+      comments: 3,
+      createdAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
+      imagePath: null,
+    ),
   ];
 
   double get _totalWeightKg =>
@@ -218,9 +227,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openScan() async {
-    final result = await Navigator.of(context).push<String?>(
-      MaterialPageRoute(builder: (c) => const CameraPage()),
-    );
+    final result = await Navigator.of(
+      context,
+    ).push<String?>(MaterialPageRoute(builder: (c) => const CameraPage()));
 
     if (result != null && result.isNotEmpty) {
       showModalBottomSheet(
@@ -228,12 +237,13 @@ class _HomePageState extends State<HomePage> {
         isScrollControlled: true,
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.vertical(top: Radius.circular(24.0))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+        ),
         builder: (c) => SafeArea(
           child: SingleChildScrollView(
-            padding:
-            EdgeInsets.only(bottom: MediaQuery.of(c).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(c).viewInsets.bottom,
+            ),
             child: CreatePostSheet(
               initialImagePath: result,
               onCreate: (post) {
@@ -242,8 +252,9 @@ class _HomePageState extends State<HomePage> {
                   _selectedIndex = 0;
                 });
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Posted to feed')));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Posted to feed')));
               },
             ),
           ),
@@ -258,20 +269,25 @@ class _HomePageState extends State<HomePage> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.0))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+      ),
       builder: (c) => SafeArea(
         child: SingleChildScrollView(
-          padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: CreatePostSheet(onCreate: (post) {
-            setState(() {
-              _posts.insert(0, post);
-              _selectedIndex = 0;
-            });
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('Posted to feed')));
-          }),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: CreatePostSheet(
+            onCreate: (post) {
+              setState(() {
+                _posts.insert(0, post);
+                _selectedIndex = 0;
+              });
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Posted to feed')));
+            },
+          ),
         ),
       ),
     );
@@ -280,7 +296,8 @@ class _HomePageState extends State<HomePage> {
   void _addDevice(Device d) {
     setState(() => _devices.insert(0, d));
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${d.name} added to your inventory')));
+      SnackBar(content: Text('${d.name} added to your inventory')),
+    );
   }
 
   void _updateDevice(Device updatedDevice) {
@@ -294,8 +311,9 @@ class _HomePageState extends State<HomePage> {
 
   void _createPostFromScan(Post p) {
     setState(() => _posts.insert(0, p));
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Posted to feed')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Posted to feed')));
   }
 
   void _toggleLike(Post p) {
@@ -316,14 +334,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Color _tipColorFromId(String id) {
-    final primaries = Colors.primaries;
+    const primaries = Colors.primaries;
     final idx = id.hashCode.abs() % primaries.length;
     return primaries[idx].shade300;
   }
 
   Widget _feedContent(BuildContext context) {
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
     final cs = Theme.of(context).colorScheme;
 
     final tips = _posts.where(_isTip).toList()
@@ -348,7 +366,7 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.only(top: 40.0),
                 child: Text('No tips yet', style: TextStyle(color: textMuted)),
               ),
-            )
+            ),
           ],
         );
       }
@@ -377,10 +395,12 @@ class _HomePageState extends State<HomePage> {
             Center(
               child: Padding(
                 padding: const EdgeInsets.only(top: 40.0),
-                child:
-                Text('No community posts yet', style: TextStyle(color: textMuted)),
+                child: Text(
+                  'No community posts yet',
+                  style: TextStyle(color: textMuted),
+                ),
               ),
-            )
+            ),
           ],
         );
       }
@@ -446,16 +466,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _postCard(BuildContext context, Post p) {
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-              builder: (c) =>
-                  PostDetailPage(post: p, tipColor: _tipColorFromId(p.id))),
+            builder: (c) =>
+                PostDetailPage(post: p, tipColor: _tipColorFromId(p.id)),
+          ),
         );
       },
       child: _isTip(p) ? _tipCard(context, p) : _regularCard(context, p),
@@ -464,75 +485,92 @@ class _HomePageState extends State<HomePage> {
 
   Widget _tipCard(BuildContext context, Post p) {
     final bgColor = _tipColorFromId(p.id);
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return Card(
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.grey.shade300, width: 1)),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ClipRRect(
-            borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: AspectRatio(
               aspectRatio: 3 / 2,
               child: p.imagePath != null
                   ? Container(
-                color: Colors.grey[50],
-                child: p.imagePath!.startsWith('asset:')
-                    ? Image.asset(p.imagePath!.substring(6),
-                    fit: BoxFit.cover)
-                    : Image.file(File(p.imagePath!), fit: BoxFit.cover),
-              )
+                      color: Colors.grey[50],
+                      child: p.imagePath!.startsWith('asset:')
+                          ? Image.asset(
+                              p.imagePath!.substring(6),
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(File(p.imagePath!), fit: BoxFit.cover),
+                    )
                   : Container(
-                color: bgColor,
-                child: Center(
-                  child: Icon(Icons.lightbulb_outline,
-                      size: 56, color: Colors.white.withOpacity(0.95)),
-                ),
-              ),
+                      color: bgColor,
+                      child: Center(
+                        child: Icon(
+                          Icons.lightbulb_outline,
+                          size: 56,
+                          color: Colors.white.withOpacity(0.95),
+                        ),
+                      ),
+                    ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(p.deviceName,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.deviceName,
                   style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: textPrimary,
-                      fontSize: 18)),
-              const SizedBox(height: 8),
-              Text(
-                p.description,
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: textMuted, fontSize: 14, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
+                    fontWeight: FontWeight.w800,
+                    color: textPrimary,
+                    fontSize: 18,
                   ),
-                  child: Text(p.category,
-                      style: TextStyle(
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  p.description,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: textMuted, fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        p.category,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Colors.black87,
-                          fontSize: 12)),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ])
-            ]),
+              ],
+            ),
           ),
         ],
       ),
@@ -540,15 +578,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _regularCard(BuildContext context, Post p) {
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return Card(
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.grey.shade300, width: 1)),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey.shade300, width: 1),
+      ),
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -558,24 +597,34 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 CircleAvatar(
-                    radius: 20,
-                    backgroundColor: p.avatarColor,
-                    child: Text(p.userName[0],
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w500))),
+                  radius: 20,
+                  backgroundColor: p.avatarColor,
+                  child: Text(
+                    p.userName[0],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.userName,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary,
-                              fontSize: 16)),
+                      Text(
+                        p.userName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('${p.category} • ${_timeAgo(p.createdAt)}',
-                          style: TextStyle(color: textMuted, fontSize: 13)),
+                      Text(
+                        '${p.category} • ${_timeAgo(p.createdAt)}',
+                        style: TextStyle(color: textMuted, fontSize: 13),
+                      ),
                     ],
                   ),
                 ),
@@ -588,23 +637,32 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           ClipRRect(
-            borderRadius:
-            const BorderRadius.vertical(top: Radius.zero, bottom: Radius.zero),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.zero,
+              bottom: Radius.zero,
+            ),
             child: AspectRatio(
               aspectRatio: 3 / 2,
               child: p.imagePath != null
                   ? Container(
-                color: Colors.grey[50],
-                child: p.imagePath!.startsWith('asset:')
-                    ? Image.asset(p.imagePath!.substring(6),
-                    fit: BoxFit.cover)
-                    : Image.file(File(p.imagePath!), fit: BoxFit.cover),
-              )
+                      color: Colors.grey[50],
+                      child: p.imagePath!.startsWith('asset:')
+                          ? Image.asset(
+                              p.imagePath!.substring(6),
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(File(p.imagePath!), fit: BoxFit.cover),
+                    )
                   : Container(
-                color: Colors.grey[50],
-                child: Center(
-                    child: Icon(Icons.image, size: 56, color: Colors.grey[400])),
-              ),
+                      color: Colors.grey[50],
+                      child: Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 56,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ),
             ),
           ),
           Padding(
@@ -612,34 +670,50 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p.deviceName,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: textPrimary,
-                        fontSize: 16)),
+                Text(
+                  p.deviceName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: textPrimary,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text(p.description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: textMuted, fontSize: 14)),
+                Text(
+                  p.description,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: textMuted, fontSize: 14),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                          color: _getStatusColor(p.status).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _getStatusColor(p.status).withOpacity(0.3))),
-                      child: Text(p.status,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: _getStatusColor(p.status),
-                              fontSize: 12)),
+                        color: _getStatusColor(p.status).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _getStatusColor(p.status).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Text(
+                        p.status,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: _getStatusColor(p.status),
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                     const Spacer(),
-                    Text('${p.estWeightKg.toStringAsFixed(2)} kg',
-                        style: TextStyle(color: textMuted, fontSize: 13)),
+                    Text(
+                      '${p.estWeightKg.toStringAsFixed(2)} kg',
+                      style: TextStyle(color: textMuted, fontSize: 13),
+                    ),
                   ],
                 ),
               ],
@@ -652,23 +726,32 @@ class _HomePageState extends State<HomePage> {
               children: [
                 IconButton(
                   onPressed: () => _toggleLike(p),
-                  icon: Icon(p.likedByMe ? Icons.favorite : Icons.favorite_outline, size: 22),
+                  icon: Icon(
+                    p.likedByMe ? Icons.favorite : Icons.favorite_outline,
+                    size: 22,
+                  ),
                   color: p.likedByMe ? Colors.redAccent : textMuted,
                   splashRadius: 20,
                 ),
-                Text('${p.likes}', style: TextStyle(color: textMuted, fontSize: 13)),
+                Text(
+                  '${p.likes}',
+                  style: TextStyle(color: textMuted, fontSize: 13),
+                ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(Icons.chat_bubble_outline, size: 22),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 22),
                   color: textMuted,
                   splashRadius: 20,
                 ),
-                Text('${p.comments}', style: TextStyle(color: textMuted, fontSize: 13)),
+                Text(
+                  '${p.comments}',
+                  style: TextStyle(color: textMuted, fontSize: 13),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(Icons.share_outlined, size: 22),
+                  icon: const Icon(Icons.share_outlined, size: 22),
                   color: textMuted,
                   splashRadius: 20,
                 ),
@@ -695,14 +778,15 @@ class _HomePageState extends State<HomePage> {
 
   Widget _scanContent(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     Future<void> analyze() async {
       final name = _scanNameCtl.text.trim();
       if (name.isEmpty) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Type a device name for demo analysis')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Type a device name for demo analysis')),
+        );
         return;
       }
       setState(() => _scanAnalyzing = true);
@@ -724,54 +808,94 @@ class _HomePageState extends State<HomePage> {
         isScrollControlled: true,
         backgroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24.0))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+        ),
         builder: (c) => SafeArea(
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(c).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(c).viewInsets.bottom,
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title.toString(), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20, color: textPrimary)),
-                const SizedBox(height: 12),
-                Text(desc.toString(), style: TextStyle(color: textMuted, fontSize: 15)),
-                const SizedBox(height: 20),
-                Row(children: [
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        foregroundColor: cs.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () {
-                        final d = Device(id: DateTime.now().millisecondsSinceEpoch.toString(), name: name, category: category.toString(), status: status.toString(), estWeightKg: estWeight);
-                        _addDevice(d);
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Add to inventory'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title.toString(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      color: textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: cs.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: cs.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () {
-                        final p = Post(id: DateTime.now().millisecondsSinceEpoch.toString(), userName: 'You', avatarColor: Colors.blueGrey, deviceName: name, category: category.toString(), description: desc.toString(), status: status.toString(), estWeightKg: estWeight);
-                        _createPostFromScan(p);
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Post to feed'),
-                    ),
+                  const SizedBox(height: 12),
+                  Text(
+                    desc.toString(),
+                    style: TextStyle(color: textMuted, fontSize: 15),
                   ),
-                ]),
-                const SizedBox(height: 12),
-              ]),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () {
+                            final d = Device(
+                              id: DateTime.now().millisecondsSinceEpoch
+                                  .toString(),
+                              name: name,
+                              category: category.toString(),
+                              status: status.toString(),
+                              estWeightKg: estWeight,
+                            );
+                            _addDevice(d);
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Add to inventory'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: cs.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: cs.primary),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: () {
+                            final p = Post(
+                              id: DateTime.now().millisecondsSinceEpoch
+                                  .toString(),
+                              userName: 'You',
+                              avatarColor: Colors.blueGrey,
+                              deviceName: name,
+                              category: category.toString(),
+                              description: desc.toString(),
+                              status: status.toString(),
+                              estWeightKg: estWeight,
+                            );
+                            _createPostFromScan(p);
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Post to feed'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         ),
@@ -780,62 +904,108 @@ class _HomePageState extends State<HomePage> {
 
     return Padding(
       padding: const EdgeInsets.all(20.0),
-      child: Column(children: [
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade300)),
-          color: Colors.white,
-          elevation: 0,
-          child: ListTile(
-            leading: Icon(Icons.photo_camera, color: cs.primary),
-            title: Text('Camera / barcode scanning', style: TextStyle(color: textPrimary, fontWeight: FontWeight.w500)),
-            subtitle: Text('Use the field below to simulate scanning results', style: TextStyle(color: textMuted)),
-          ),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _scanNameCtl,
-          style: TextStyle(color: textPrimary),
-          decoration: InputDecoration(
-            labelText: 'Device name (for demo)',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            labelStyle: TextStyle(color: textMuted),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(children: [
-          Expanded(
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.primary,
-                foregroundColor: cs.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        children: [
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: Colors.grey.shade300),
+            ),
+            color: Colors.white,
+            elevation: 0,
+            child: ListTile(
+              leading: Icon(Icons.photo_camera, color: cs.primary),
+              title: Text(
+                'Camera / barcode scanning',
+                style: TextStyle(
+                  color: textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              onPressed: analyze,
-              child: _scanAnalyzing ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Analyze', style: TextStyle(fontSize: 16)),
+              subtitle: Text(
+                'Use the field below to simulate scanning results',
+                style: TextStyle(color: textMuted),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: cs.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              side: BorderSide(color: cs.primary),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _scanNameCtl,
+            style: TextStyle(color: textPrimary),
+            decoration: InputDecoration(
+              labelText: 'Device name (for demo)',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              labelStyle: TextStyle(color: textMuted),
             ),
-            onPressed: () => _scanNameCtl.text = 'Phone Model X',
-            child: const Text('Sample'),
           ),
-        ]),
-        const SizedBox(height: 30),
-        Flexible(
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: analyze,
+                  child: _scanAnalyzing
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Analyze', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  side: BorderSide(color: cs.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () => _scanNameCtl.text = 'Phone Model X',
+                child: const Text('Sample'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          Flexible(
             child: Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.camera_alt_outlined, size: 64, color: Colors.grey[300]),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.camera_alt_outlined,
+                    size: 64,
+                    color: Colors.grey[300],
+                  ),
                   const SizedBox(height: 12),
-                  Text('Camera placeholder', style: TextStyle(color: textMuted))
-                ]))),
-      ]),
+                  Text(
+                    'Camera placeholder',
+                    style: TextStyle(color: textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -844,37 +1014,41 @@ class _HomePageState extends State<HomePage> {
     if (n.contains('phone') || n.contains('iphone') || n.contains('smart')) {
       return {
         'title': 'Smartphone detected',
-        'desc': 'Contains lithium battery (hazardous). Recommend drop-off or specialist recycling. Repair possible for screen/battery.',
+        'desc':
+            'Contains lithium battery (hazardous). Recommend drop-off or specialist recycling. Repair possible for screen/battery.',
         'category': 'Phone',
         'recommendStatus': 'for pickup',
-        'estWeight': 0.25
+        'estWeight': 0.25,
       };
     }
     if (n.contains('laptop') || n.contains('notebook')) {
       return {
         'title': 'Laptop detected',
-        'desc': 'Large device with valuable components (copper, aluminum, battery). Consider reuse or certified recycling.',
+        'desc':
+            'Large device with valuable components (copper, aluminum, battery). Consider reuse or certified recycling.',
         'category': 'Laptop',
         'recommendStatus': 'for pickup',
-        'estWeight': 2.0
+        'estWeight': 2.0,
       };
     }
     if (n.contains('battery')) {
       return {
         'title': 'Battery detected',
-        'desc': 'Batteries are hazardous. Do not dispose in general trash. Take to a battery recycling point.',
+        'desc':
+            'Batteries are hazardous. Do not dispose in general trash. Take to a battery recycling point.',
         'category': 'Battery',
         'recommendStatus': 'for pickup',
-        'estWeight': 0.3
+        'estWeight': 0.3,
       };
     }
     final rand = Random().nextDouble() * 1.2 + 0.1;
     return {
       'title': 'Electronic device detected',
-      'desc': 'General electronic device. Recommend assessing for reuse, repair, or certified recycling.',
+      'desc':
+          'General electronic device. Recommend assessing for reuse, repair, or certified recycling.',
       'category': 'Electronics',
       'recommendStatus': 'available',
-      'estWeight': double.parse(rand.toStringAsFixed(2))
+      'estWeight': double.parse(rand.toStringAsFixed(2)),
     };
   }
 
@@ -895,28 +1069,48 @@ class _HomePageState extends State<HomePage> {
       child: Card(
         elevation: 0,
         color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade300, width: 1)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
         margin: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: AspectRatio(aspectRatio: 3 / 2, child: Container(color: base)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              child: AspectRatio(
+                aspectRatio: 3 / 2,
+                child: Container(color: base),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(height: 18, width: double.infinity, color: base),
-                const SizedBox(height: 8),
-                Container(height: 12, width: double.infinity, color: base),
-                const SizedBox(height: 8),
-                Container(height: 12, width: double.infinity, color: base),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Container(width: 70, height: 28, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(16))),
-                ])
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 18, width: double.infinity, color: base),
+                  const SizedBox(height: 8),
+                  Container(height: 12, width: double.infinity, color: base),
+                  const SizedBox(height: 8),
+                  Container(height: 12, width: double.infinity, color: base),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: base,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -933,34 +1127,85 @@ class _HomePageState extends State<HomePage> {
       child: Card(
         elevation: 0,
         color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey.shade300, width: 1)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
         margin: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(children: [
-                Container(width: 40, height: 40, decoration: BoxDecoration(color: base, shape: BoxShape.circle)),
-                const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(height: 12, color: base), const SizedBox(height: 6), Container(height: 10, width: 120, color: base)])),
-                const SizedBox(width: 8),
-                Container(width: 18, height: 18, color: base)
-              ]),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: base,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 12, color: base),
+                        const SizedBox(height: 6),
+                        Container(height: 10, width: 120, color: base),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(width: 18, height: 18, color: base),
+                ],
+              ),
             ),
-            AspectRatio(aspectRatio: 3 / 2, child: Container(color: base)),
+            AspectRatio(
+              aspectRatio: 3 / 2,
+              child: Container(color: base),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(height: 14, width: double.infinity, color: base),
-                const SizedBox(height: 8),
-                Container(height: 12, width: double.infinity, color: base),
-                const SizedBox(height: 12),
-                Row(children: [Container(width: 80, height: 28, decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(16))), const Spacer(), Container(width: 40, height: 12, color: base)])
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 14, width: double.infinity, color: base),
+                  const SizedBox(height: 8),
+                  Container(height: 12, width: double.infinity, color: base),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: base,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(width: 40, height: 12, color: base),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const Divider(height: 1, thickness: 0.5),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), child: Row(children: [Container(width: 28, height: 28, color: base), const SizedBox(width: 8), Container(width: 20, height: 12, color: base), const Spacer(), Container(width: 28, height: 12, color: base)])),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  Container(width: 28, height: 28, color: base),
+                  const SizedBox(width: 8),
+                  Container(width: 20, height: 12, color: base),
+                  const Spacer(),
+                  Container(width: 28, height: 12, color: base),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -970,7 +1215,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color textPrimary = Colors.black87;
+    const Color textPrimary = Colors.black87;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -981,13 +1226,21 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         automaticallyImplyLeading: false,
         iconTheme: IconThemeData(color: textPrimary),
-        titleTextStyle:
-        TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 22),
-        title: Row(children: [
-          Icon(Icons.eco, color: cs.primary),
-          const SizedBox(width: 8),
-          Text('E-Wise', style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700))
-        ]),
+        titleTextStyle: TextStyle(
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 22,
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.eco, color: cs.primary),
+            const SizedBox(width: 8),
+            Text(
+              'E-Wise',
+              style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
         centerTitle: false,
         actions: [
           IconButton(
@@ -998,17 +1251,29 @@ class _HomePageState extends State<HomePage> {
                   title: const Text('Search'),
                   content: TextField(
                     controller: _searchCtl,
-                    decoration: const InputDecoration(hintText: 'Search feed, users, devices...'),
+                    decoration: const InputDecoration(
+                      hintText: 'Search feed, users, devices...',
+                    ),
                     autofocus: true,
                   ),
                   actions: [
-                    TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('Close')),
+                    TextButton(
+                      onPressed: () => Navigator.of(c).pop(),
+                      child: const Text('Close'),
+                    ),
                     FilledButton(
-                        onPressed: () {
-                          Navigator.of(c).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Searching for "${_searchCtl.text}"...')));
-                        },
-                        child: const Text('Search'))
+                      onPressed: () {
+                        Navigator.of(c).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Searching for "${_searchCtl.text}"...',
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Search'),
+                    ),
                   ],
                 ),
               );
@@ -1024,12 +1289,15 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: SafeArea(
-        child: IndexedStack(index: _selectedIndex, children: [
-          _feedContent(context),
-          Container(),
-          _scanContent(context),
-          _pickupContent(context),
-        ]),
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _feedContent(context),
+            Container(),
+            _scanContent(context),
+            _pickupContent(context),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openScan,
@@ -1043,6 +1311,9 @@ class _HomePageState extends State<HomePage> {
       // FIX: Use the alias for EwasteNavigationBar
       bottomNavigationBar: nav.EwasteNavigationBar(
         selectedIndex: _selectedIndex,
+        user: widget.user,
+        devices: _devices,
+        onDeviceUpdated: _updateDevice,
       ),
     );
   }
@@ -1055,8 +1326,8 @@ class PostDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
     final bool isTip = _isTipStatic(post);
 
     return Scaffold(
@@ -1077,33 +1348,73 @@ class PostDetailPage extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 3 / 2,
               child: post.imagePath != null
-                  ? (post.imagePath!.startsWith('asset:') ? Image.asset(post.imagePath!.substring(6), fit: BoxFit.cover) : Image.file(File(post.imagePath!), fit: BoxFit.cover))
+                  ? (post.imagePath!.startsWith('asset:')
+                        ? Image.asset(
+                            post.imagePath!.substring(6),
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(File(post.imagePath!), fit: BoxFit.cover))
                   : Container(
-                color: isTip ? tipColor : Colors.grey[200],
-                child: Center(
-                  child: Icon(isTip ? Icons.lightbulb_outline : Icons.image, size: 56, color: isTip ? Colors.white : Colors.grey[600]),
-                ),
-              ),
+                      color: isTip ? tipColor : Colors.grey[200],
+                      child: Center(
+                        child: Icon(
+                          isTip ? Icons.lightbulb_outline : Icons.image,
+                          size: 56,
+                          color: isTip ? Colors.white : Colors.grey[600],
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(height: 16),
-          Text(post.deviceName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
-          const SizedBox(height: 8),
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-              child: Text(post.category, style: TextStyle(color: textMuted, fontWeight: FontWeight.w600)),
+          Text(
+            post.deviceName,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
             ),
-            if (!isTip) ...[
-              const SizedBox(width: 12),
-              Text(_timeAgoStatic(post.createdAt), style: TextStyle(color: textMuted)),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  post.category,
+                  style: TextStyle(
+                    color: textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (!isTip) ...[
+                const SizedBox(width: 12),
+                Text(
+                  _timeAgoStatic(post.createdAt),
+                  style: TextStyle(color: textMuted),
+                ),
+              ],
+              const Spacer(),
+              if (!isTip)
+                Text(
+                  '${post.estWeightKg.toStringAsFixed(2)} kg',
+                  style: TextStyle(color: textMuted),
+                ),
             ],
-            const Spacer(),
-            if (!isTip) Text('${post.estWeightKg.toStringAsFixed(2)} kg', style: TextStyle(color: textMuted)),
-          ]),
+          ),
           const SizedBox(height: 12),
-          Text(post.description, style: TextStyle(color: textMuted, fontSize: 15, height: 1.4)),
+          Text(
+            post.description,
+            style: TextStyle(color: textMuted, fontSize: 15, height: 1.4),
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -1111,7 +1422,9 @@ class PostDetailPage extends StatelessWidget {
   }
 
   static bool _isTipStatic(Post p) {
-    return p.status == 'info' || p.category.toLowerCase() == 'awareness' || p.id.toLowerCase().startsWith('tip');
+    return p.status == 'info' ||
+        p.category.toLowerCase() == 'awareness' ||
+        p.id.toLowerCase().startsWith('tip');
   }
 
   static String _timeAgoStatic(DateTime t) {
@@ -1125,7 +1438,11 @@ class PostDetailPage extends StatelessWidget {
 class CreatePostSheet extends StatefulWidget {
   final void Function(Post) onCreate;
   final String? initialImagePath;
-  const CreatePostSheet({required this.onCreate, this.initialImagePath, super.key});
+  const CreatePostSheet({
+    required this.onCreate,
+    this.initialImagePath,
+    super.key,
+  });
   @override
   State<CreatePostSheet> createState() => _CreatePostSheetState();
 }
@@ -1154,7 +1471,11 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
   void _submit() {
     final name = _deviceCtl.text.trim();
     if (name.isEmpty && _imagePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter device name or attach an image')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter device name or attach an image'),
+        ),
+      );
       return;
     }
     final post = Post(
@@ -1174,111 +1495,216 @@ class _CreatePostSheetState extends State<CreatePostSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final Color textPrimary = Colors.black87;
-    final Color textMuted = Colors.black54;
+    const Color textPrimary = Colors.black87;
+    const Color textMuted = Colors.black54;
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Text('Create post', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: textPrimary)),
-              const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(Icons.close, color: textPrimary),
-                splashRadius: 20,
-              )
-            ]),
-            const SizedBox(height: 16),
-
-            if (_imagePath != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _imagePath!.startsWith('asset:') ? Image.asset(_imagePath!.substring(6), height: 180, width: double.infinity, fit: BoxFit.cover) : Image.file(File(_imagePath!), height: 180, width: double.infinity, fit: BoxFit.cover),
-              ),
-              const SizedBox(height: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _imagePath = null),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Remove'),
-                    style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  Text(
+                    'Create post',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: textPrimary,
+                    ),
                   ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.check),
-                    label: const Text('Keep image'),
-                    style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: textPrimary),
+                    splashRadius: 20,
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-            ],
 
-            TextField(
+              if (_imagePath != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _imagePath!.startsWith('asset:')
+                      ? Image.asset(
+                          _imagePath!.substring(6),
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(_imagePath!),
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() => _imagePath = null),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Remove'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.check),
+                      label: const Text('Keep image'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              TextField(
                 controller: _deviceCtl,
                 style: TextStyle(color: textPrimary),
-                decoration: InputDecoration(labelText: 'Device name (e.g. Old Laptop)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), labelStyle: TextStyle(color: textMuted))),
-            const SizedBox(height: 16),
-            TextField(
+                decoration: InputDecoration(
+                  labelText: 'Device name (e.g. Old Laptop)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  labelStyle: TextStyle(color: textMuted),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
                 controller: _descCtl,
                 maxLines: 3,
                 style: TextStyle(color: textPrimary),
-                decoration: InputDecoration(labelText: 'Description (optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), labelStyle: TextStyle(color: textMuted))),
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  labelStyle: TextStyle(color: textMuted),
+                ),
+              ),
 
-            const SizedBox(height: 16),
-            Row(children: [
-              Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _category,
-                    items: const [
-                      DropdownMenuItem(value: 'Electronics', child: Text('Electronics')),
-                      DropdownMenuItem(value: 'Phone', child: Text('Phone')),
-                      DropdownMenuItem(value: 'Laptop', child: Text('Laptop')),
-                      DropdownMenuItem(value: 'Battery', child: Text('Battery'))
-                    ],
-                    onChanged: (v) => setState(() => _category = v ?? 'Electronics'),
-                    decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-                  )),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _status,
-                    items: const [
-                      DropdownMenuItem(value: 'available', child: Text('Available')),
-                      DropdownMenuItem(value: 'for pickup', child: Text('For pickup')),
-                      DropdownMenuItem(value: 'donated', child: Text('Donated'))
-                    ],
-                    onChanged: (v) => setState(() => _status = v ?? 'available'),
-                    decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-                  )),
-            ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              Text('Weight (kg)', style: TextStyle(color: textPrimary, fontSize: 15)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Slider(
-                    value: _weight,
-                    min: 0.1,
-                    max: 5.0,
-                    divisions: 49,
-                    label: _weight.toStringAsFixed(2),
-                    onChanged: (v) => setState(() => _weight = v),
-                    activeColor: cs.primary,
-                  ))
-            ]),
-            const SizedBox(height: 20),
-            FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _category,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Electronics',
+                          child: Text('Electronics'),
+                        ),
+                        DropdownMenuItem(value: 'Phone', child: Text('Phone')),
+                        DropdownMenuItem(
+                          value: 'Laptop',
+                          child: Text('Laptop'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Battery',
+                          child: Text('Battery'),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _category = v ?? 'Electronics'),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'available',
+                          child: Text('Available'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'for pickup',
+                          child: Text('For pickup'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'donated',
+                          child: Text('Donated'),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _status = v ?? 'available'),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(
+                    'Weight (kg)',
+                    style: TextStyle(color: textPrimary, fontSize: 15),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Slider(
+                      value: _weight,
+                      min: 0.1,
+                      max: 5.0,
+                      divisions: 49,
+                      label: _weight.toStringAsFixed(2),
+                      onChanged: (v) => setState(() => _weight = v),
+                      activeColor: cs.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 onPressed: _submit,
-                child: const Text('Post', style: TextStyle(fontSize: 16))),
-          ]),
+                child: const Text('Post', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
         ),
       ),
     );
