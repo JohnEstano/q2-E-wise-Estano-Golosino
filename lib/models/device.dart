@@ -6,6 +6,7 @@ class Device {
   String status;
   int quantity;
   double estWeightKg;
+  String? userId; // Owner of the device
 
   // Additional fields from analysis
   String? description;
@@ -30,6 +31,7 @@ class Device {
     this.status = 'available',
     this.quantity = 1,
     this.estWeightKg = 0.5,
+    this.userId,
     this.description,
     this.imagePath,
     this.imageUrl,
@@ -55,6 +57,7 @@ class Device {
       'status': status,
       'quantity': quantity,
       'estWeightKg': estWeightKg,
+      'userId': userId,
       'description': description,
       'imagePath': imagePath,
       'imageUrl': imageUrl,
@@ -81,6 +84,7 @@ class Device {
       status: map['status'] ?? 'available',
       quantity: map['quantity'] ?? 1,
       estWeightKg: (map['estWeightKg'] ?? 0.5).toDouble(),
+      userId: map['userId'],
       description: map['description'],
       imagePath: map['imagePath'],
       imageUrl: map['imageUrl'],

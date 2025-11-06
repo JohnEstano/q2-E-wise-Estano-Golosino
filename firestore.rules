@@ -22,8 +22,14 @@ service cloud.firestore {
       allow create: if isSignedIn() 
                     && request.resource.data.userId == request.auth.uid;
       
-      // Allow users to update only their own posts
-      allow update: if isOwner(resource.data.userId);
+      // Allow any authenticated user to update posts (for likes/comments count)
+      // But they can only modify likes, comments, and likedBy fields
+      allow update: if isSignedIn() && (
+        // Owner can update everything
+        request.auth.uid == resource.data.userId ||
+        // Others can only update likes, comments, and likedBy
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'likedBy']))
+      );
       
       // Allow users to delete only their own posts
       allow delete: if isOwner(resource.data.userId);
@@ -74,7 +80,7 @@ service cloud.firestore {
         // Allow users to read only their own devices
         allow read: if isOwner(userId);
         
-        // Allow users to create devices in their own collection
+        // Allow users to create devices in their own collection (no userId check needed)
         allow create: if isOwner(userId);
         
         // Allow users to update their own devices

@@ -356,18 +356,10 @@ class _InventoryPageState extends State<InventoryPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final firebaseDevices = snapshot.data ?? [];
-          final allDevices = <Device>[...firebaseDevices, ...widget.devices];
+          // Use only Firebase devices - don't try to merge with widget.devices
+          final allDevices = snapshot.data ?? [];
 
-          final uniqueDevices = <String, Device>{};
-          for (var device in allDevices) {
-            uniqueDevices[device.id] = device;
-          }
-
-          widget.devices.clear();
-          widget.devices.addAll(uniqueDevices.values);
-
-          final filteredDevices = widget.devices.where((device) {
+          final filteredDevices = allDevices.where((device) {
             final matchesSearch =
                 device.name.toLowerCase().contains(
                   _searchQuery.toLowerCase(),

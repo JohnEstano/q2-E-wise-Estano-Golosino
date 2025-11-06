@@ -38,10 +38,22 @@ class CommentService {
         .where('postId', isEqualTo: postId)
         .orderBy('createdAt', descending: false)
         .snapshots()
+        .handleError((error) {
+          print('Error getting comments: $error');
+          return <CommentModel>[];
+        })
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return CommentModel.fromMap(doc.data());
-          }).toList();
+          return snapshot.docs
+              .map((doc) {
+                try {
+                  return CommentModel.fromMap(doc.data());
+                } catch (e) {
+                  print('Error parsing comment: $e');
+                  return null;
+                }
+              })
+              .whereType<CommentModel>()
+              .toList();
         });
   }
 

@@ -48,27 +48,49 @@ class DeviceService {
   Future<bool> saveDevice(Device device) async {
     try {
       final userId = _userId;
-      if (userId == null) throw Exception('User not authenticated');
+      if (userId == null) {
+        print('Error: User not authenticated');
+        throw Exception('User not authenticated');
+      }
+
+      // Set userId on the device
+      device.userId = userId;
+
+      // Ensure scannedAt is set
+      if (device.scannedAt == null) {
+        device.scannedAt = DateTime.now();
+      }
+
+      print('Saving device: ${device.name} for user: $userId');
 
       // Upload image if available
       if (device.imagePath != null && device.imagePath!.isNotEmpty) {
+        print('Uploading image: ${device.imagePath}');
         final imageUrl = await uploadImage(device.imagePath!, device.id);
         if (imageUrl != null) {
           device.imageUrl = imageUrl;
+          print('Image uploaded successfully: $imageUrl');
+        } else {
+          print('Warning: Image upload failed');
         }
       }
 
       // Save to Firestore under user's collection
+      final deviceData = device.toMap();
+      print('Device data to save: $deviceData');
+
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('devices')
           .doc(device.id)
-          .set(device.toMap());
+          .set(deviceData);
 
+      print('Device saved successfully to Firestore');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error saving device: $e');
+      print('Stack trace: $stackTrace');
       return false;
     }
   }
