@@ -62,12 +62,12 @@ The leaderboard system encourages sustainable practices by ranking users based o
 ## Screenshots
 
 ![Screenshot 1](public/images/1.jpg)
-![Screenshot 2](public/images/screenshots/2.jpg)
-![Screenshot 3](public/images/screenshots/3.jpg)
-![Screenshot 4](public/images/screenshots/4.jpg)
-![Screenshot 5](public/images/screenshots/5.jpg)
-![Screenshot 6](public/images/screenshots/6.jpg)
-![Screenshot 7](public/images/screenshots/7.jpg)
+![Screenshot 2](public/images/2.jpg)
+![Screenshot 3](public/images/3.jpg)
+![Screenshot 4](public/images/4.jpg)
+![Screenshot 5](public/images/5.jpg)
+![Screenshot 6](public/images/6.jpg)
+![Screenshot 7](public/images/7.jpg)
 
 ## Setup Instructions
 
