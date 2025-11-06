@@ -44,3 +44,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase configuration files (contain API keys)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Environment variables (API keys, secrets)
+.env
+.env.*
+!.env.example
