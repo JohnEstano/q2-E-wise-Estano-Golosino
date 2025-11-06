@@ -70,7 +70,18 @@ service cloud.firestore {
       allow read: if isSignedIn();
       
       // Allow users to create/update only their own profile
-      allow create, update: if isOwner(userId);
+      // Prevent scanCount manipulation: only allow increment by 1 or initialization to 0
+      allow create: if isOwner(userId) && (
+        !request.resource.data.keys().hasAny(['scanCount']) ||
+        request.resource.data.scanCount == 0
+      );
+      
+      allow update: if isOwner(userId) && (
+        // If updating scanCount, must increment by exactly 1
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['scanCount']) ||
+        (request.resource.data.scanCount == resource.data.scanCount + 1 &&
+         request.resource.data.scanCount <= 6)
+      );
       
       // Don't allow profile deletion
       allow delete: if false;

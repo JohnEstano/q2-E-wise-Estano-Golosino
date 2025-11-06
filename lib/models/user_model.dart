@@ -5,6 +5,7 @@ class UserModel {
   final String displayName;
   final String? photoURL;
   final String? phoneNumber;
+  final int scanCount; // Number of scans used (max 6)
 
   UserModel({
     required this.uid,
@@ -12,6 +13,7 @@ class UserModel {
     required this.displayName,
     this.photoURL,
     this.phoneNumber,
+    this.scanCount = 0,
   });
 
   factory UserModel.fromFirebaseUser(dynamic firebaseUser) {
@@ -21,6 +23,7 @@ class UserModel {
       displayName: firebaseUser.displayName ?? 'User',
       photoURL: firebaseUser.photoURL,
       phoneNumber: firebaseUser.phoneNumber,
+      scanCount: 0, // Default to 0 for new users
     );
   }
 
@@ -31,6 +34,7 @@ class UserModel {
       'displayName': displayName,
       'photoURL': photoURL,
       'phoneNumber': phoneNumber,
+      'scanCount': scanCount,
     };
   }
 
@@ -41,6 +45,7 @@ class UserModel {
       displayName: json['displayName'],
       photoURL: json['photoURL'],
       phoneNumber: json['phoneNumber'],
+      scanCount: json['scanCount'] ?? 0,
     );
   }
 }

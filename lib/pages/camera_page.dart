@@ -19,6 +19,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/device.dart';
 import '../services/device_service.dart';
+import '../services/scan_limit_service.dart';
 import '../widgets/post_dialog.dart';
 import 'inventory_page.dart';
 
@@ -427,12 +428,54 @@ class _CameraPageState extends State<CameraPage> with WidgetsBindingObserver {
               ),
             ),
           ),
+          // Scan limit indicator
+          _buildScanLimitBadge(),
+          const SizedBox(width: 8),
           IconButton(
             onPressed: _switchCamera,
             icon: const Icon(Icons.cameraswitch, color: Colors.white),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildScanLimitBadge() {
+    return FutureBuilder<int>(
+      future: ScanLimitService().getRemainingScans(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
+        final remaining = snapshot.data ?? 0;
+        final total = ScanLimitService.maxScansPerUser;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: remaining <= 2
+                ? Colors.red.withOpacity(0.9)
+                : remaining <= 4
+                ? Colors.orange.withOpacity(0.9)
+                : Colors.green.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.analytics, color: Colors.white, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                '$remaining/$total',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -938,6 +981,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   final DeviceService _deviceService = DeviceService();
+  final ScanLimitService _scanLimitService = ScanLimitService();
   bool _isSaving = false;
   bool _savedToFirebase = false;
 
@@ -1129,6 +1173,20 @@ class _AnalysisPageState extends State<AnalysisPage> {
         return;
       }
 
+      // CHECK SCAN LIMIT BEFORE CALLING OPENAI API
+      final canScan = await _scanLimitService.canUserScan();
+      if (!canScan) {
+        final remaining = await _scanLimitService.getRemainingScans();
+        setState(() {
+          _error =
+              'You\'ve reached your scan limit (6/6). This is a prototype app with limited API usage.';
+          _titleController.text = 'Scan Limit Reached';
+          _descriptionController.text =
+              'You have used all 6 scans for your account. Scans remaining: $remaining/6.\n\nThis app is a prototype with limited OpenAI API access. Please contact the developer if you need additional scans.';
+        });
+        return;
+      }
+
       debugPrint('Starting image analysis for ${widget.imagePath}');
 
       // add a safety timeout around the entire analysis (in case underlying call hangs)
@@ -1151,6 +1209,15 @@ class _AnalysisPageState extends State<AnalysisPage> {
           _error = (result['message'])?.toString();
         });
         return;
+      }
+
+      // INCREMENT SCAN COUNT AFTER SUCCESSFUL ANALYSIS
+      final incremented = await _scanLimitService.incrementScanCount();
+      if (!incremented) {
+        debugPrint('Warning: Failed to increment scan count');
+      } else {
+        final remaining = await _scanLimitService.getRemainingScans();
+        debugPrint('Scan count incremented. Remaining scans: $remaining/6');
       }
 
       // populate fields defensively and normalize category

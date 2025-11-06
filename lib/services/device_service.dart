@@ -53,6 +53,11 @@ class DeviceService {
         throw Exception('User not authenticated');
       }
 
+      // Get current user info
+      final currentUser = _auth.currentUser;
+      final userName = currentUser?.displayName ?? 'Anonymous';
+      final photoURL = currentUser?.photoURL;
+
       // Set userId on the device
       device.userId = userId;
 
@@ -61,7 +66,7 @@ class DeviceService {
         device.scannedAt = DateTime.now();
       }
 
-      print('Saving device: ${device.name} for user: $userId');
+      print('Saving device: ${device.name} for user: $userId ($userName)');
 
       // Upload image if available
       if (device.imagePath != null && device.imagePath!.isNotEmpty) {
@@ -77,6 +82,11 @@ class DeviceService {
 
       // Save to Firestore under user's collection
       final deviceData = device.toMap();
+
+      // Add userName and photoURL to device data for leaderboard display
+      deviceData['userName'] = userName;
+      deviceData['photoURL'] = photoURL;
+
       print('Device data to save: $deviceData');
 
       await _firestore

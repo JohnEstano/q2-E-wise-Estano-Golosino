@@ -248,10 +248,12 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader(ColorScheme cs) {
-    // Use authenticated user data
-    final displayName = widget.user?.displayName ?? 'User';
-    final email = widget.user?.email ?? '';
-    final photoURL = widget.user?.photoURL;
+    // Always use current Firebase Auth user data instead of passed widget.user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final displayName =
+        currentUser?.displayName ?? widget.user?.displayName ?? 'User';
+    final email = currentUser?.email ?? widget.user?.email ?? '';
+    final photoURL = currentUser?.photoURL ?? widget.user?.photoURL;
 
     return Container(
       width: double.infinity,
@@ -271,6 +273,21 @@ class _ProfilePageState extends State<ProfilePage> {
                   radius: 34,
                   backgroundImage: NetworkImage(photoURL),
                   backgroundColor: cs.primary,
+                  onBackgroundImageError: (exception, stackTrace) {
+                    // Fallback handled by child below
+                  },
+                  child: photoURL.isEmpty
+                      ? Text(
+                          displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 )
               : CircleAvatar(
                   radius: 34,
