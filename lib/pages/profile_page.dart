@@ -1,15 +1,21 @@
 // lib/pages/profile_page.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/device.dart';
 import '../models/user_model.dart';
+import '../models/post_model.dart';
 import '../services/firebase_service.dart';
+import '../services/device_service.dart';
+import '../services/post_service.dart';
 import 'home_page.dart';
 import 'inventory_page.dart';
 import 'map_page.dart';
 import 'pickup_page.dart';
 import 'camera_page.dart';
 import 'leaderboards_page.dart';
+import 'community_post_detail_page.dart';
+import '../services/leaderboard_service.dart';
 import '../widgets/navigation.dart' as nav;
 
 class ProfilePage extends StatefulWidget {
@@ -31,21 +37,36 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Helper to safely read estWeightKg and quantity (handles nullable fields in Device)
+  final DeviceService _deviceService = DeviceService();
+  final PostService _postService = PostService();
+  final LeaderboardService _leaderboardService = LeaderboardService();
+  int? _userRank;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRank();
+  }
+
+  Future<void> _loadUserRank() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      final rank = await _leaderboardService.getUserRank(userId);
+      if (mounted) {
+        setState(() {
+          _userRank = rank;
+        });
+      }
+    }
+  }
+
+  // Helper to safely read estWeightKg and quantity
   double _deviceWeight(Device d) {
-    final double est = (d.estWeightKg ?? 0.0);
-    final qtyRaw = d.quantity ?? 0;
-    final double qty = qtyRaw.toDouble();
-    return est * qty;
+    return d.estWeightKg * d.quantity;
   }
 
   double get _totalWeightKg =>
       widget.devices.fold<double>(0.0, (prev, d) => prev + _deviceWeight(d));
-
-  double get _estimatedCo2Kg => _totalWeightKg * 2.5;
-
-  // NOTE: Achievements removed per request
-  final int _pickupRequests = 0;
 
   String _timeAgo(DateTime t) {
     final diff = DateTime.now().difference(t);
@@ -312,199 +333,236 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// Overview card with links, icons, and correct subvalues
   Widget _buildOverviewSingleCardList(ColorScheme cs, BuildContext context) {
-    // Dummy scores as requested
-    const int ecoscoreInt = 50;
-    const int ecoscoreRank = 16;
-    const int totalScans = 2;
-    const int pickups = 5;
-    const int ecoscoreGrowth = 12; // percent growth
+    return StreamBuilder<List<Device>>(
+      stream: _deviceService.getDevices(),
+      builder: (context, deviceSnapshot) {
+        final devices = deviceSnapshot.data ?? [];
+        final totalScans = devices.length;
+        final totalWeightKg = devices.fold<double>(
+          0.0,
+          (sum, d) => sum + (d.estWeightKg * d.quantity),
+        );
 
-    const Color iconEcoscore = Colors.green; // keep green for ecoscore
-    const Color iconScans = Colors.blue; // blue for scans
-    const Color iconPickup = Colors.redAccent; // red for pickups
-    const Color iconInventory = Colors.deepPurple; // purple for inventory
+        return StreamBuilder<List<PostModel>>(
+          stream: _postService.getPostsByUser(
+            FirebaseAuth.instance.currentUser?.uid ?? '',
+          ),
+          builder: (context, postSnapshot) {
+            final posts = postSnapshot.data ?? [];
+            final totalPosts = posts.length;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (c) => const LeaderboardsPage()),
-              );
-            },
-            child: _overviewRow(
-              icon: Icons.eco,
-              iconColor: iconEcoscore,
-              title: 'Eco Score',
-              valueWidget: Row(
+            // Calculate ecoscore based on scans and posts
+            final double fromScans = totalScans * 8.0;
+            final double fromPosts = totalPosts * 5.0;
+            final double fromWeight = totalWeightKg * 4.0;
+            final ecoscoreRaw = fromScans + fromPosts + fromWeight;
+            final int ecoscoreInt = ecoscoreRaw.clamp(0.0, 100.0).round();
+
+            // Use real rank from leaderboard or show loading
+            final ecoscoreRank = _userRank ?? 0;
+            const int ecoscoreGrowth = 0; // No growth tracking yet
+
+            // No pickups feature yet
+            const int pickups = 0;
+
+            const Color iconEcoscore = Colors.green;
+            const Color iconScans = Colors.blue;
+            const Color iconPickup = Colors.redAccent;
+            const Color iconInventory = Colors.deepPurple;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '#$ecoscoreRank',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.green,
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (c) => const LeaderboardsPage(),
+                        ),
+                      );
+                    },
+                    child: _overviewRow(
+                      icon: Icons.eco,
+                      iconColor: iconEcoscore,
+                      title: 'Eco Score',
+                      valueWidget: Row(
+                        children: [
+                          if (ecoscoreRank > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '#$ecoscoreRank',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ),
+                          if (ecoscoreRank > 0) const SizedBox(width: 10),
+                          Text(
+                            '$ecoscoreInt%',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                      subvalueWidget: ecoscoreGrowth > 0
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.arrow_upward,
+                                  color: Colors.green,
+                                  size: 14,
+                                ),
+                                Text(
+                                  '+$ecoscoreGrowth%',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : null,
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 26,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '$ecoscoreInt%',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
+                  const Divider(height: 1, thickness: 0.5),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (c) => const CameraPage()),
+                      );
+                    },
+                    child: _overviewRow(
+                      icon: Icons.document_scanner,
+                      iconColor: iconScans,
+                      title: 'Total Scans',
+                      valueWidget: Text(
+                        '$totalScans',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
+                        ),
+                      ),
+                      subvalueWidget: null,
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 0.5),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (c) => PickupPage(
+                            devices: widget.devices,
+                            posts: widget.posts,
+                            onDeviceUpdated: widget.onDeviceUpdated,
+                          ),
+                        ),
+                      );
+                    },
+                    child: _overviewRow(
+                      icon: Icons.local_shipping,
+                      iconColor: iconPickup,
+                      title: 'Pickups',
+                      valueWidget: Text(
+                        '$pickups',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
+                        ),
+                      ),
+                      subvalueWidget: null,
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 0.5),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (c) => InventoryPage(
+                            devices: widget.devices,
+                            onDeviceUpdated: widget.onDeviceUpdated,
+                          ),
+                        ),
+                      );
+                    },
+                    child: _overviewRow(
+                      icon: Icons.inventory_2,
+                      iconColor: iconInventory,
+                      title: 'Inventory',
+                      valueWidget: Row(
+                        children: [
+                          Text(
+                            '${devices.length}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'items (${totalWeightKg.toStringAsFixed(2)} kg)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      subvalueWidget: null,
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ],
               ),
-              subvalueWidget: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.arrow_upward, color: Colors.green, size: 14),
-                  Text(
-                    '+$ecoscoreGrowth%',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.green,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 26,
-              ),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.5),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (c) => const CameraPage()));
-            },
-            child: _overviewRow(
-              icon: Icons.document_scanner,
-              iconColor: iconScans,
-              title: 'Total Scans',
-              valueWidget: Text(
-                '$totalScans',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black,
-                ),
-              ),
-              subvalueWidget: null,
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 26,
-              ),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.5),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (c) => PickupPage(
-                    devices: widget.devices,
-                    posts: widget.posts,
-                    onDeviceUpdated: widget.onDeviceUpdated,
-                  ),
-                ),
-              );
-            },
-            child: _overviewRow(
-              icon: Icons.local_shipping,
-              iconColor: iconPickup,
-              title: 'Pickups',
-              valueWidget: Text(
-                '$pickups',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black,
-                ),
-              ),
-              subvalueWidget: null,
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 26,
-              ),
-            ),
-          ),
-          const Divider(height: 1, thickness: 0.5),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (c) => InventoryPage(
-                    devices: widget.devices,
-                    onDeviceUpdated: widget.onDeviceUpdated,
-                  ),
-                ),
-              );
-            },
-            child: _overviewRow(
-              icon: Icons.inventory_2,
-              iconColor: iconInventory,
-              title: 'Inventory',
-              valueWidget: Row(
-                children: [
-                  Text(
-                    '${widget.devices.length}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'items',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-              subvalueWidget: null,
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 26,
-              ),
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -588,51 +646,299 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPostsArea(BuildContext context) {
-    if (widget.posts.isEmpty) {
-      return Column(
-        children: [
-          _buildPostCard(
-            context,
-            Post(
-              id: 'demo1',
-              userName: 'You',
-              avatarColor: Colors.blueGrey,
-              deviceName: 'Your first post',
-              category: 'Electronics',
-              description:
-                  'Start sharing your e-waste journey with the community!',
-              status: 'available',
-              estWeightKg: 0.5,
-              createdAt: DateTime.now().subtract(const Duration(days: 1)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildPostCard(
-            context,
-            Post(
-              id: 'demo2',
-              userName: 'You',
-              avatarColor: Colors.blueGrey,
-              deviceName: 'Another example',
-              category: 'Phone',
-              description:
-                  'This is how your posts will appear when you create them',
-              status: 'for pickup',
-              estWeightKg: 0.2,
-              createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-            ),
-          ),
-        ],
-      );
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      return const Center(child: Text('Please log in to see your posts'));
     }
 
-    return Column(
-      children: widget.posts.map((post) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildPostCard(context, post),
+    return StreamBuilder<List<PostModel>>(
+      stream: _postService.getPostsByUser(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading posts: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+
+        if (posts.isEmpty) {
+          return Column(
+            children: [
+              Icon(Icons.post_add, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                'No posts yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Share your e-waste with the community!',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: posts.map((post) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildPostModelCard(context, post),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
+    );
+  }
+
+  Widget _buildPostModelCard(BuildContext context, PostModel post) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final device = post.device;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final isLiked = userId != null && post.likedBy.contains(userId);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CommunityPostDetailPage(post: post),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // User Info Header
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: primary.withOpacity(0.2),
+                    child: post.userPhotoUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              post.userPhotoUrl!,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(Icons.person, color: primary);
+                              },
+                            ),
+                          )
+                        : Icon(Icons.person, color: primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${device.category} • ${_timeAgo(post.postedAt)}',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Device Image
+            if (device.imagePath != null || device.imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.zero,
+                child: AspectRatio(
+                  aspectRatio: 3 / 2,
+                  child: device.imageUrl != null
+                      ? Image.network(
+                          device.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(
+                                Icons.devices,
+                                size: 56,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        )
+                      : device.imagePath != null
+                      ? Image.file(
+                          File(device.imagePath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(
+                                Icons.devices,
+                                size: 56,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.devices,
+                            size: 56,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                ),
+              ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    device.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    post.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Tags
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildTag(device.category, primary),
+                      if (device.brand != null)
+                        _buildTag(device.brand!, Colors.blue),
+                      _buildTag(device.status, _getStatusColor(device.status)),
+                      _buildTag(
+                        '${device.estWeightKg.toStringAsFixed(2)} kg',
+                        Colors.purple,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, thickness: 0.5),
+
+            // Like and Comment Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      if (userId == null) return;
+                      await _postService.toggleLike(post.id);
+                    },
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? Colors.red : Colors.grey.shade600,
+                    ),
+                    splashRadius: 20,
+                  ),
+                  Text(
+                    '${post.likedBy.length}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CommunityPostDetailPage(post: post),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.comment_outlined,
+                      color: Colors.grey.shade600,
+                    ),
+                    splashRadius: 20,
+                  ),
+                  Text(
+                    '${post.comments}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 

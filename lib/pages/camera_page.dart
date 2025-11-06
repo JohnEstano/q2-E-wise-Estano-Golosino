@@ -1102,6 +1102,14 @@ class _AnalysisPageState extends State<AnalysisPage> {
     }
   }
 
+  /// Calculate eco score impact for the scanned device
+  int _calculateEcoScoreImpact() {
+    // Eco score formula: 8 points for scanning + (weight × 4)
+    final scanPoints = 8;
+    final weightPoints = (_weightKg ?? 0) * 4;
+    return (scanPoints + weightPoints).round();
+  }
+
   Future<void> _analyze() async {
     // making _analyze robust: explicit try/catch/finally so shimmer always clears
     if (!mounted) return;
@@ -2097,6 +2105,98 @@ class _AnalysisPageState extends State<AnalysisPage> {
                                 style: TextStyle(
                                   color: Colors.green.shade700,
                                   fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Eco Score Impact
+                    if (_savedToFirebase) const SizedBox(height: 12),
+                    if (_savedToFirebase)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.purple.shade50,
+                              Colors.blue.shade50,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.purple.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.eco,
+                                  color: Colors.purple.shade700,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Eco Score Impact',
+                                  style: TextStyle(
+                                    color: Colors.purple.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '+${_calculateEcoScoreImpact()}',
+                                  style: TextStyle(
+                                    color: Colors.purple.shade800,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 32,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'points',
+                                  style: TextStyle(
+                                    color: Colors.purple.shade600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '🎉 Great job on scanning this device!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.purple.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '8 pts (scan) + ${(_weightKg ?? 0) * 4} pts (weight)',
+                                style: TextStyle(
+                                  color: Colors.purple.shade700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),

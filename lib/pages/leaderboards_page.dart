@@ -1,91 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/leaderboard_service.dart';
 
 class LeaderboardsPage extends StatefulWidget {
-  final String userName;
-  final int userRank;
-  final int userScore;
-
-  const LeaderboardsPage({
-    super.key,
-    this.userName = 'John Doe',
-    this.userRank = 16,
-    this.userScore = 50,
-  });
+  const LeaderboardsPage({super.key});
 
   @override
   State<LeaderboardsPage> createState() => _LeaderboardsPageState();
 }
 
 class _LeaderboardsPageState extends State<LeaderboardsPage> {
+  final LeaderboardService _leaderboardService = LeaderboardService();
   final List<Map<String, dynamic>> _levels = [
-    {'label': 'Barangay', 'icon': Icons.home_work},
-    {'label': 'Municipality', 'icon': Icons.apartment},
-    {'label': 'City', 'icon': Icons.location_city},
-    {'label': 'Province', 'icon': Icons.map},
-    {'label': 'Region', 'icon': Icons.public},
-    {'label': 'National', 'icon': Icons.flag},
-    {'label': 'Worldwide', 'icon': Icons.language},
+    {'label': 'Global', 'icon': Icons.public},
+    // Future levels can be added here
+    // {'label': 'City', 'icon': Icons.location_city},
+    // {'label': 'Province', 'icon': Icons.map},
   ];
-  String _selectedLevel = 'Barangay';
+  String _selectedLevel = 'Global';
+  bool _isLoading = true;
+  List<LeaderboardEntry> _leaderboard = [];
 
-  Map<String, List<Map<String, dynamic>>> get _leaderboards => {
-        'Barangay': [
-          {'rank': 1, 'name': 'Maria Santos', 'score': 98},
-          {'rank': 2, 'name': 'Juan Dela Cruz', 'score': 92},
-          {'rank': 3, 'name': 'Liza Soberano', 'score': 89},
-          {'rank': 4, 'name': 'Mark Lee', 'score': 85},
-          {'rank': 5, 'name': 'Kim Chiu', 'score': 80},
-          {'rank': 6, 'name': 'James Reid', 'score': 78},
-          {'rank': 7, 'name': 'Sarah G', 'score': 76},
-          {'rank': 8, 'name': 'Enrique Gil', 'score': 74},
-          {'rank': 9, 'name': 'Kathryn Bernardo', 'score': 72},
-          {'rank': 10, 'name': 'Daniel Padilla', 'score': 70},
-          {'rank': 11, 'name': 'Vice Ganda', 'score': 68},
-          {'rank': 12, 'name': 'Anne Curtis', 'score': 65},
-          {'rank': 13, 'name': 'Coco Martin', 'score': 62},
-          {'rank': 14, 'name': 'Angel Locsin', 'score': 60},
-          {'rank': 15, 'name': 'Bea Alonzo', 'score': 58},
-          {
-            'rank': 16,
-            'name': 'John Doe',
-            'score': 50,
-            'me': true,
-          },
-          {'rank': 17, 'name': 'Piolo Pascual', 'score': 48},
-          {'rank': 18, 'name': 'Lea Salonga', 'score': 45},
-        ],
-        'Municipality': [
-          {'rank': 1, 'name': 'Maria Santos', 'score': 99},
-          {'rank': 2, 'name': 'Juan Dela Cruz', 'score': 95},
-          {'rank': 3, 'name': 'Mark Lee', 'score': 90},
-          {'rank': 4, 'name': 'Kim Chiu', 'score': 88},
-          {'rank': 5, 'name': 'James Reid', 'score': 85},
-        ],
-        'City': [
-          {'rank': 1, 'name': 'Maria Santos', 'score': 97},
-          {'rank': 2, 'name': 'Juan Dela Cruz', 'score': 93},
-          {'rank': 3, 'name': 'Mark Lee', 'score': 89},
-          {'rank': 4, 'name': 'Kim Chiu', 'score': 87},
-          {'rank': 5, 'name': 'James Reid', 'score': 84},
-        ],
-        'Province': [
-          {'rank': 1, 'name': 'Juan Dela Cruz', 'score': 100},
-          {'rank': 2, 'name': 'Maria Santos', 'score': 97},
-          {'rank': 3, 'name': 'Mark Lee', 'score': 91},
-        ],
-        'Region': [
-          {'rank': 1, 'name': 'Maria Santos', 'score': 100},
-          {'rank': 2, 'name': 'Juan Dela Cruz', 'score': 95},
-        ],
-        'National': [
-          {'rank': 1, 'name': 'Juan Dela Cruz', 'score': 100},
-          {'rank': 2, 'name': 'Maria Santos', 'score': 96},
-        ],
-        'Worldwide': [
-          {'rank': 1, 'name': 'Eco Hero', 'score': 100},
-          {'rank': 2, 'name': 'Green Queen', 'score': 97},
-        ],
-      };
+  @override
+  void initState() {
+    super.initState();
+    _loadLeaderboard();
+  }
+
+  Future<void> _loadLeaderboard() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (currentUserId.isEmpty) {
+        setState(() {
+          _leaderboard = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final leaderboard = await _leaderboardService.getLeaderboardWithUser(
+        currentUserId: currentUserId,
+        topCount: 20,
+      );
+
+      setState(() {
+        _leaderboard = leaderboard;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading leaderboard: $e');
+      setState(() {
+        _leaderboard = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   // Vibrant colors for medals
   Color _rankColor(int rank) {
@@ -112,7 +83,6 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final leaderboard = _leaderboards[_selectedLevel] ?? [];
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -128,6 +98,12 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
           ),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black87),
+            onPressed: _loadLeaderboard,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -155,24 +131,38 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
                       isExpanded: true,
                       value: _selectedLevel,
                       items: _levels
-                          .map((level) => DropdownMenuItem<String>(
-                                value: level['label'] as String,
-                                child: Row(
-                                  children: [
-                                    Icon(level['icon'] as IconData,
-                                        size: 18, color: Colors.black54),
-                                    const SizedBox(width: 6),
-                                    Text(level['label'] as String,
-                                        style: const TextStyle(color: Colors.black87)),
-                                  ],
-                                ),
-                              ))
+                          .map(
+                            (level) => DropdownMenuItem<String>(
+                              value: level['label'] as String,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    level['icon'] as IconData,
+                                    size: 18,
+                                    color: Colors.black54,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    level['label'] as String,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedLevel = val);
+                        if (val != null) {
+                          setState(() => _selectedLevel = val);
+                          _loadLeaderboard();
+                        }
                       },
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600, color: Colors.black87),
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
                       borderRadius: BorderRadius.circular(10),
                       underline: Container(),
                       dropdownColor: Colors.white,
@@ -183,66 +173,157 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
             ),
           ),
           Expanded(
-            child: leaderboard.isEmpty
-                ? const Center(child: Text('No entries yet.'))
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _leaderboard.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.emoji_events_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No entries yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Start scanning devices to appear!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[500],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8, bottom: 16),
-                    itemCount: leaderboard.length,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                    ).copyWith(top: 8, bottom: 16),
+                    itemCount: _leaderboard.length,
                     separatorBuilder: (context, index) {
                       return const SizedBox(height: 8);
                     },
                     itemBuilder: (context, idx) {
-                      final entry = leaderboard[idx];
-                      final bool isMe = entry['me'] == true;
-                      final int rank = (entry['rank'] is int) ? entry['rank'] as int : (idx + 1);
-                      final String name = (entry['name'] ?? '').toString();
-                      final int score = (entry['score'] is int) ? entry['score'] as int : 0;
+                      final entry = _leaderboard[idx];
+                      final bool isMe = entry.isCurrentUser;
+                      final int rank = entry.rank;
+                      final String name = entry.userName;
+                      final int score = entry.ecoScore;
 
                       return Material(
                         color: Colors.transparent,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isMe ? cs.primary.withOpacity(0.12) : Colors.white,
+                            color: isMe
+                                ? cs.primary.withOpacity(0.12)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.02),
                                 blurRadius: 3,
                                 offset: const Offset(0, 1),
-                              )
+                              ),
                             ],
                           ),
                           child: ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            leading: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: isMe ? cs.primary : _rankColor(rank),
-                              child: Text(
-                                '#$rank',
-                                style: TextStyle(
-                                  color: _rankTextColor(rank, isMe),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            leading: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: cs.primary.withOpacity(0.2),
+                                  child: entry.photoURL != null
+                                      ? ClipOval(
+                                          child: Image.network(
+                                            entry.photoURL!,
+                                            width: 48,
+                                            height: 48,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return Icon(
+                                                    Icons.person,
+                                                    color: cs.primary,
+                                                  );
+                                                },
+                                          ),
+                                        )
+                                      : Icon(Icons.person, color: cs.primary),
                                 ),
-                              ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? cs.primary
+                                          : _rankColor(rank),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '#$rank',
+                                      style: TextStyle(
+                                        color: _rankTextColor(rank, isMe),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             title: Text(
                               name + (isMe ? ' (You)' : ''),
                               style: TextStyle(
-                                fontWeight: isMe ? FontWeight.w800 : FontWeight.w600,
+                                fontWeight: isMe
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
                                 color: isMe ? cs.primary : Colors.black87,
                                 fontSize: 15,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                            trailing: Text(
-                              '$score%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isMe ? cs.primary : Colors.black87,
-                              ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.eco,
+                                  size: 16,
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$score',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: isMe ? cs.primary : Colors.black87,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

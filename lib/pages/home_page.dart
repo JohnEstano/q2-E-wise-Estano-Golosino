@@ -13,6 +13,7 @@ import 'map_page.dart';
 import 'pickup_page.dart';
 import 'community_post_detail_page.dart';
 import 'comments_page.dart';
+import 'select_device_for_post_page.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 // FIX: Use an alias for navigation.dart to avoid ambiguous import
@@ -1599,7 +1600,13 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Search',
           ),
           IconButton(
-            onPressed: _openCreatePost,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SelectDeviceForPostPage(),
+                ),
+              );
+            },
             icon: Icon(Icons.add_box_outlined, color: textPrimary),
             tooltip: 'Create post',
           ),
