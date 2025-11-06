@@ -26,11 +26,10 @@ class LeaderboardService {
   /// Formula: (scans × 8) + (posts × 5) + (weight × 4)
   Future<int> calculateEcoScore(String userId) async {
     try {
-      // Get user's devices from correct path: users/{userId}/devices
+      // Get user's devices from GLOBAL devices collection
       final devicesSnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
           .collection('devices')
+          .where('userId', isEqualTo: userId)
           .get();
 
       final deviceCount = devicesSnapshot.docs.length;
@@ -70,67 +69,71 @@ class LeaderboardService {
     int limit = 100,
   }) async {
     try {
-      // Get all users collection
-      final usersSnapshot = await _firestore.collection('users').get();
+      // Get all devices from the GLOBAL devices collection
+      final devicesSnapshot = await _firestore.collection('devices').get();
+
+      print(
+        '📊 Leaderboard: Found ${devicesSnapshot.docs.length} total devices in global collection',
+      );
+
+      // Group devices by userId to get unique users
+      final Map<String, List<Map<String, dynamic>>> devicesByUser = {};
+
+      for (var doc in devicesSnapshot.docs) {
+        final data = doc.data();
+        final userId = data['userId'] as String?;
+
+        if (userId != null && userId.isNotEmpty) {
+          if (!devicesByUser.containsKey(userId)) {
+            devicesByUser[userId] = [];
+          }
+          devicesByUser[userId]!.add(data);
+        }
+      }
+
+      print('📊 Leaderboard: Found ${devicesByUser.length} unique users');
 
       // Calculate eco scores for all users
       final List<LeaderboardEntry> entries = [];
 
-      for (var userDoc in usersSnapshot.docs) {
+      for (var entry in devicesByUser.entries) {
         try {
-          final userId = userDoc.id;
-          final userData = userDoc.data();
+          final userId = entry.key;
+          final userDevices = entry.value;
 
-          // Get user info from Firestore Auth data
-          String userName = 'Anonymous';
-          String? photoURL;
+          if (userDevices.isEmpty) continue;
 
-          // Try to get from devices subcollection first
-          final devicesSnapshot = await _firestore
-              .collection('users')
-              .doc(userId)
-              .collection('devices')
-              .limit(1)
-              .get();
+          // Get user info from first device (all devices have userName and photoURL)
+          final firstDevice = userDevices.first;
+          final userName = firstDevice['userName'] as String? ?? 'Anonymous';
+          final photoURL = firstDevice['photoURL'] as String?;
 
-          if (devicesSnapshot.docs.isNotEmpty) {
-            final deviceData = devicesSnapshot.docs.first.data();
-            userName =
-                deviceData['userName'] as String? ??
-                userData['displayName'] as String? ??
-                'Anonymous';
-            photoURL =
-                deviceData['photoURL'] as String? ??
-                userData['photoURL'] as String?;
-          } else {
-            // Fallback to user document data
-            userName =
-                userData['displayName'] as String? ??
-                userData['email'] as String? ??
-                'Anonymous';
-            photoURL = userData['photoURL'] as String?;
-          }
+          print(
+            '📊 Processing user: $userName (ID: $userId) - ${userDevices.length} devices',
+          );
 
           // Calculate eco score
           final ecoScore = await calculateEcoScore(userId);
 
-          // Only add users with non-zero eco scores
-          if (ecoScore > 0) {
-            entries.add(
-              LeaderboardEntry(
-                userId: userId,
-                userName: userName,
-                photoURL: photoURL,
-                ecoScore: ecoScore,
-                rank: 0, // Will be set after sorting
-                isCurrentUser: userId == currentUserId,
-              ),
-            );
-          }
+          print('📊 User $userName eco score: $ecoScore');
+
+          // Add ALL users, even with zero scores (for debugging)
+          entries.add(
+            LeaderboardEntry(
+              userId: userId,
+              userName: userName,
+              photoURL: photoURL,
+              ecoScore: ecoScore,
+              rank: 0, // Will be set after sorting
+              isCurrentUser: userId == currentUserId,
+            ),
+          );
         } catch (e) {
-          print('Error processing user ${userDoc.id}: $e');
+          print('❌ Error processing user ${entry.key}: $e');
         }
       }
+
+      print('📊 Total entries before sorting: ${entries.length}');
 
       // Sort by eco score descending
       entries.sort((a, b) => b.ecoScore.compareTo(a.ecoScore));
@@ -151,10 +154,13 @@ class LeaderboardService {
         );
       }
 
+      print('📊 Final leaderboard entries: ${rankedEntries.length}');
+
       // Limit results
       return rankedEntries.take(limit).toList();
-    } catch (e) {
-      print('Error getting global leaderboard: $e');
+    } catch (e, stackTrace) {
+      print('❌ Error getting global leaderboard: $e');
+      print('Stack trace: $stackTrace');
       return [];
     }
   }
