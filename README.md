@@ -60,14 +60,21 @@ The leaderboard system encourages sustainable practices by ranking users based o
 - **User Profiles** - Track your environmental impact over time
 
 ## Screenshots
+<p align="center">
+    <a href="public/images/1.jpg"><img src="public/images/1.jpg" alt="Screenshot 1" width="240"></a>
+    <a href="public/images/2.jpg"><img src="public/images/2.jpg" alt="Screenshot 2" width="240"></a>
+    <a href="public/images/3.jpg"><img src="public/images/3.jpg" alt="Screenshot 3" width="240"></a>
+</p>
 
-![Screenshot 1](public/images/1.jpg)
-![Screenshot 2](public/images/2.jpg)
-![Screenshot 3](public/images/3.jpg)
-![Screenshot 4](public/images/4.jpg)
-![Screenshot 5](public/images/5.jpg)
-![Screenshot 6](public/images/6.jpg)
-![Screenshot 7](public/images/7.jpg)
+<p align="center">
+    <a href="public/images/4.jpg"><img src="public/images/4.jpg" alt="Screenshot 4" width="240"></a>
+    <a href="public/images/5.jpg"><img src="public/images/5.jpg" alt="Screenshot 5" width="240"></a>
+    <a href="public/images/6.jpg"><img src="public/images/6.jpg" alt="Screenshot 6" width="240"></a>
+</p>
+
+<p align="center">
+    <a href="public/images/7.jpg"><img src="public/images/7.jpg" alt="Screenshot 7" width="240"></a>
+</p>
 
 ## Setup Instructions
 
