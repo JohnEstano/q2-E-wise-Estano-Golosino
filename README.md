@@ -62,7 +62,6 @@ The leaderboard system encourages sustainable practices by ranking users based o
 ## Screenshots
 <p align="center">
     <a href="public/images/1.jpg"><img src="public/images/1.jpg" alt="Screenshot 1" width="240"></a>
-    <a href="public/images/2.jpg"><img src="public/images/2.jpg" alt="Screenshot 2" width="240"></a>
     <a href="public/images/3.jpg"><img src="public/images/3.jpg" alt="Screenshot 3" width="240"></a>
 </p>
 
