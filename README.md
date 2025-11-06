@@ -63,17 +63,15 @@ The leaderboard system encourages sustainable practices by ranking users based o
 <p align="center">
     <a href="public/images/1.jpg"><img src="public/images/1.jpg" alt="Screenshot 1" width="240"></a>
     <a href="public/images/3.jpg"><img src="public/images/3.jpg" alt="Screenshot 3" width="240"></a>
+    <a href="public/images/4.jpg"><img src="public/images/4.jpg" alt="Screenshot 4" width="240"></a>
 </p>
 
 <p align="center">
-    <a href="public/images/4.jpg"><img src="public/images/4.jpg" alt="Screenshot 4" width="240"></a>
     <a href="public/images/5.jpg"><img src="public/images/5.jpg" alt="Screenshot 5" width="240"></a>
     <a href="public/images/6.jpg"><img src="public/images/6.jpg" alt="Screenshot 6" width="240"></a>
+     <a href="public/images/7.jpg"><img src="public/images/7.jpg" alt="Screenshot 7" width="240"></a>
 </p>
 
-<p align="center">
-    <a href="public/images/7.jpg"><img src="public/images/7.jpg" alt="Screenshot 7" width="240"></a>
-</p>
 
 ## Setup Instructions
 
