@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import 'inventory_page.dart';
 import '../models/device.dart';
 import '../models/user_model.dart';
+import '../models/post_model.dart';
+import '../services/post_service.dart';
 import 'profile_page.dart';
 import 'camera_page.dart';
 import 'map_page.dart';
 import 'pickup_page.dart';
+import 'community_post_detail_page.dart';
+import 'comments_page.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 // FIX: Use an alias for navigation.dart to avoid ambiguous import
 import '../widgets/navigation.dart' as nav;
 
@@ -59,6 +64,7 @@ class _HomePageState extends State<HomePage> {
   final _searchCtl = TextEditingController();
   final _scanNameCtl = TextEditingController();
   bool _scanAnalyzing = false;
+  final PostService _postService = PostService();
 
   // NEW: feed loading flag for shimmer placeholders
   bool _feedLoading = true;
@@ -382,35 +388,78 @@ class _HomePageState extends State<HomePage> {
     }
 
     Widget communityListView() {
-      if (_feedLoading) {
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          itemCount: 4,
-          itemBuilder: (context, idx) => _shimmerRegularCard(context),
-        );
-      }
-      if (others.isEmpty) {
-        return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          children: [
-            Center(
+      return StreamBuilder<List<PostModel>>(
+        stream: _postService.getPosts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              itemCount: 4,
+              itemBuilder: (context, idx) => _shimmerRegularCard(context),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
               child: Padding(
-                padding: const EdgeInsets.only(top: 40.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'No community posts yet',
-                  style: TextStyle(color: textMuted),
+                  'Error loading posts: ${snapshot.error}',
+                  style: TextStyle(color: Colors.red.shade700),
                 ),
               ),
-            ),
-          ],
-        );
-      }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        itemCount: others.length,
-        itemBuilder: (context, idx) {
-          final p = others[idx];
-          return _postCard(context, p);
+            );
+          }
+
+          final communityPosts = snapshot.data ?? [];
+
+          if (communityPosts.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 40.0),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 64,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No community posts yet',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Be the first to share your e-waste!',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            itemCount: communityPosts.length,
+            itemBuilder: (context, idx) {
+              final post = communityPosts[idx];
+              return _communityPostCard(context, post);
+            },
+          );
         },
       );
     }
@@ -760,6 +809,273 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _communityPostCard(BuildContext context, PostModel post) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final device = post.device;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final isLiked = userId != null && post.likedBy.contains(userId);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CommunityPostDetailPage(post: post),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade300, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // User Info Header
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: primary.withOpacity(0.2),
+                    child: post.userPhotoUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              post.userPhotoUrl!,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(Icons.person, color: primary);
+                              },
+                            ),
+                          )
+                        : Icon(Icons.person, color: primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${device.category} • ${_timeAgo(post.postedAt)}',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Device Image
+            if (device.imagePath != null || device.imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.zero,
+                child: AspectRatio(
+                  aspectRatio: 3 / 2,
+                  child: device.imageUrl != null
+                      ? Image.network(
+                          device.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(
+                                Icons.devices,
+                                size: 56,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        )
+                      : device.imagePath != null
+                      ? Image.file(
+                          File(device.imagePath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(
+                                Icons.devices,
+                                size: 56,
+                                color: Colors.grey.shade400,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.devices,
+                            size: 56,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                ),
+              ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    device.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    post.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Tags
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildPostTag(device.category, primary),
+                      if (device.brand != null)
+                        _buildPostTag(device.brand!, Colors.blue.shade700),
+                      _buildPostTag(
+                        device.status,
+                        _getStatusColor(device.status),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Weight Info
+                  Row(
+                    children: [
+                      Icon(Icons.scale, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${device.estWeightKg.toStringAsFixed(2)} kg',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, thickness: 0.5),
+
+            // Like and Comment Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await _postService.toggleLike(post.id);
+                      },
+                      icon: Icon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        size: 18,
+                        color: isLiked ? primary : Colors.grey.shade600,
+                      ),
+                      label: Text(
+                        '${post.likes}',
+                        style: TextStyle(
+                          color: isLiked ? primary : Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => CommentsPage(post: post),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.comment_outlined,
+                        size: 18,
+                        color: Colors.grey.shade600,
+                      ),
+                      label: Text(
+                        '${post.comments}',
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: color,
+          fontSize: 12,
+        ),
       ),
     );
   }

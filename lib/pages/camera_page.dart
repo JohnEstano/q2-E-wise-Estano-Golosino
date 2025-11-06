@@ -17,6 +17,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/device.dart';
+import '../services/device_service.dart';
+import '../widgets/post_dialog.dart';
+import 'inventory_page.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -933,6 +937,9 @@ class _AnalysisPageState extends State<AnalysisPage> {
   String? _error;
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  final DeviceService _deviceService = DeviceService();
+  bool _isSaving = false;
+  bool _savedToFirebase = false;
 
   // extracted fields (with safe defaults)
   String _brand = '';
@@ -1208,6 +1215,11 @@ class _AnalysisPageState extends State<AnalysisPage> {
         debugPrint('Populate fields error: $e\n$st');
         _error = 'Failed to parse analysis output.';
       }
+
+      // Auto-save to Firebase after successful analysis
+      if (_error == null && mounted) {
+        _saveLog();
+      }
     } on TimeoutException catch (e) {
       debugPrint('Analysis timeout: $e');
       if (mounted) setState(() => _error = 'Analysis timed out. Try again.');
@@ -1321,35 +1333,106 @@ class _AnalysisPageState extends State<AnalysisPage> {
     );
   }
 
-  void _saveLog() {
-    // demo: create payload and show snackbar
-    final payload = {
-      'title': _titleController.text,
-      'brand': _brand,
-      'model': _model,
-      'year': _year,
-      'category': _category,
-      'status': _status,
-      'components': _components,
-      'hazards': _hazards,
-      'weightKg': _weightKg,
-      'materialStreams': _materialStreams,
-      'disposalPath': _disposalPath,
-      'metrics': _rawMetrics,
-    };
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Logged (demo): ${jsonEncode(payload).substring(0, 120)}...',
-        ),
-      ),
-    ); // TODO: actually send to backend
+  void _saveLog() async {
+    if (_isSaving || _savedToFirebase) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      // Create Device object with all analyzed data
+      final device = Device(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: _titleController.text.isNotEmpty
+            ? _titleController.text
+            : 'Unknown Device',
+        category: _category,
+        status: _status,
+        quantity: 1,
+        estWeightKg: _weightKg ?? 0.5,
+        description: _descriptionController.text,
+        imagePath: widget.imagePath,
+        brand: _brand.isNotEmpty ? _brand : null,
+        model: _model.isNotEmpty ? _model : null,
+        year: _year.isNotEmpty ? _year : null,
+        color: _color.isNotEmpty ? _color : null,
+        components: _components.isNotEmpty ? _components : null,
+        hazards: _hazards.isNotEmpty ? _hazards : null,
+        materialStreams: _materialStreams.isNotEmpty ? _materialStreams : null,
+        disposalPath: _disposalPath.isNotEmpty ? _disposalPath : null,
+        metrics: _rawMetrics.isNotEmpty ? _rawMetrics : null,
+        scannedAt: DateTime.now(),
+        qrCode: _deviceService.generateQRCode(),
+      );
+
+      // Save to Firebase
+      final success = await _deviceService.saveDevice(device);
+
+      if (success && mounted) {
+        setState(() => _savedToFirebase = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Device saved to inventory successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save device. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving device: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
-  void _requestPickup() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pickup requested (demo).')),
-    ); // TODO: real pickup flow
+  void _showPostDialog() {
+    // Create a Device object from current analysis data
+    final device = Device(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _titleController.text.trim(),
+      category: _category,
+      status: _status,
+      quantity: 1,
+      estWeightKg: _weightKg ?? 0.5,
+      description: _descriptionController.text.trim(),
+      imagePath: widget.imagePath,
+      brand: _brand,
+      model: _model,
+      year: _year,
+      color: _color,
+      components: _components,
+      hazards: _hazards,
+      materialStreams: _materialStreams,
+      disposalPath: _disposalPath,
+      metrics: _rawMetrics,
+      scannedAt: DateTime.now(),
+      qrCode: _deviceService.generateQRCode(),
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => PostDialog(
+          device: device,
+          onPostSuccess: () {
+            // Optionally navigate back or show success message
+          },
+        ),
+      ),
+    );
   }
 
   // New shimmer skeleton per your request:
@@ -1491,16 +1574,30 @@ class _AnalysisPageState extends State<AnalysisPage> {
         foregroundColor: Colors.black87,
         elevation: 0,
         actions: [
+          // Post button
           IconButton(
             onPressed: () {
               if (_isAnalyzing) return;
-              _saveLog();
+              _showPostDialog();
             },
             icon: Icon(
-              Icons.save,
+              Icons.share,
               color: _isAnalyzing ? Colors.grey[400] : primary,
             ),
-            tooltip: 'Save log',
+            tooltip: 'Post to Community',
+          ),
+          // Inventory button
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      InventoryPage(devices: const [], onDeviceUpdated: (_) {}),
+                ),
+              );
+            },
+            icon: Icon(Icons.inventory_2, color: primary),
+            tooltip: 'Go to Inventory',
           ),
         ],
       ),
@@ -1978,36 +2075,34 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
                     const SizedBox(height: 18),
 
-                    // action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _saveLog,
-                            icon: const Icon(Icons.save),
-                            label: const Text('Save & Log'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
+                    // Auto-saved indicator
+                    if (_savedToFirebase)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _requestPickup,
-                            icon: const Icon(Icons.local_shipping),
-                            label: const Text('Request Pickup'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              foregroundColor: primary,
-                              side: BorderSide(color: primary),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green.shade700,
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Device saved to inventory automatically',
+                                style: TextStyle(
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
 
                     const SizedBox(height: 28),
                   ],
