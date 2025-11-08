@@ -12,8 +12,15 @@ Users can scan electronic devices using their phone camera, and the app automati
 
 The leaderboard system encourages sustainable practices by ranking users based on their eco-score, calculated from the number of devices scanned, posts shared, and total weight of e-waste processed. This creates a competitive yet collaborative environment where environmental responsibility is rewarded and celebrated.
 
-**Programmer & UI/UX Design:** JohnEstano ❤️   
-**Team Member / Presentor :** Nash Golosino
+
+## Contributions
+**JohnEstano:**
+- Project lead developer (Front-end and Backend)
+- UI/UX Design
+  
+**Nash Golosino:**
+- Project Manager
+- Debug and Testing
 
 ## Tech Stack
 
